@@ -4,72 +4,105 @@
 
 </div>
 
-## Inhalt
+## 📋 Inhalt
 
-- [Betriebssysteme](#betriebssysteme)
-  - [Inhalt](#inhalt)
-  - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Setup](#setup)
-      - [Clonen des Projektes](#clonen-des-projektes)
-    - [Building](#building)
-    - [Hinzufügen von osmp\_executables](#hinzufügen-von-osmp_executables)
-    - [Testing](#testing)
-      - [Aufbau der test.json](#aufbau-der-testjson)
-    - [CI/CD Testing](#cicd-testing)
-  - [Overview ](#overview-)
+- [📋 Inhalt](#-inhalt)
+- [🏎️ TL;DR](#️-tldr)
+- [🚨 Wichtiges](#-wichtiges)
+- [🚀 Getting Started](#-getting-started)
+- [🔭 Prerequisites](#-prerequisites)
+  - [Git](#git)
+  - [CMake und GCC](#cmake-und-gcc)
+- [🔧 Setup](#-setup)
+  - [Clonen des Projektes](#clonen-des-projektes)
+- [🪄 CMake](#-cmake)
+  - [Nutzung von ASAN (AddressSanitizer)](#nutzung-von-asan-addresssanitizer)
+  - [Hinzufügen von osmpExecutables](#hinzufügen-von-osmpexecutables)
+- [🏗️ Projekt bauen](#️-projekt-bauen)
+  - [Manuell über das Terminal](#manuell-über-das-terminal)
+  - [CLion](#clion)
+  - [VScode](#vscode)
 
-## Getting Started
+## 🏎️ TL;DR
 
-Auf unseren Laborrechnern ist aktuell Ubuntu LTS in der aktuellsten Version (Stand: 19.03.2024) installiert.
-Wir erwarten, dass Ihr Praktikumsprojekt auf diesen Rechnern fehlerfrei kompiliert werden kann und zum Abschluss fehlerfrei funktioniert. 
-Mit dieser Anleitung möchten wir Sie unterstützen, dass Sie Ihr Praktikumsprojekt auch auf Ihrer eigenen Ubuntu-Installation weiterentwickeln können. 
-Im Praktikum empfehlen wir Ihnen, ausschließlich die Laborrechner zum Entwickeln der Lösung zu nutzen.
+1. Im Praktikumstermin auf den Laborrechnern arbeiten.
+2. Sie können nicht auf die Laborrechner zugreifen.
+3. Das Projekt muss auf den Laborrechnern fehlerfrei kompilieren und laufen.
+4. Mit Git, GitLab, SSH-Keys, CMake und GCC vertraut machen.
+5. **git**, **cmake** und **gcc** installieren
+6. Projekt klonen (`git clone <link>`)
+7. Projekt bauen (`mkdir -P build && cd build && cmake .. && cmake --build .`)
+8. Executable ausführen (`./build/<executable>`)
 
-Unsere Laborrechner sind für das Praktikum vorbereitet und enthalten insbesondere von uns geforderte Programme.
-Zu Beginn sind jedoch einige persönliche Einstellungen noch zu erledigen, die unter dem Punkt [Setup](#setup) besprochen werden.
+## 🚨 Wichtiges
 
->**Anmerkung:** \
-> Obwohl Sie sich mit Ihrer FH-Kennung auch an unseren Rechnern mit dem gewohnten Passwort anmelden können, verwenden wir eigene Homeverzeichnisse, die von eigenen Servern gemountet werden.
-> 
-> Unser Labornetz ist zudem von außen **nicht** ohne Weiteres nutzbar.
-> Obwohl es technisch möglich wäre, über einen Verbindungsrechner auf die Laborrechner zuzugreifen, können wir die Rechner außerhalb der offiziellen Praktikumszeiten nicht ohne Weiteres zur Verfügung stellen.
-> Sorgen Sie also bitte dafür, dass Sie Ihre Dateien zum Ende des Praktikums möglichst in Ihrem Git-Repository ablegen.
+Obwohl Sie sich mit Ihrer FH-Kennung auch an unseren Rechnern mit dem
+gewohnten Passwort anmelden können, verwenden wir eigene Homeverzeichnisse,
+die von eigenen Servern gemountet werden. Als Konsequenz daraus sind Ihre
+Dateien nur auf den Betriebssystem-Laborrechnern verfügbar und nicht auf den
+von Laboren.
 
-### Prerequisites
+Unser Labornetz ist zudem von außen **nicht** nutzbar.
+Sorgen Sie also bitte dafür, dass Sie Ihre Dateien zum Ende des Praktikums
+möglichst in Ihrem Git-Repository ablegen.
 
-Um dieses Projekt lokal zu nutzen, wird Git benötigt, da es uns ermöglicht, den gesamten Projektcode von GitLab zu klonen/kopieren und Änderungen mit dem Stand im GitLab zu synchronisieren.
+## 🚀 Getting Started
+
+Auf unseren Laborrechnern ist aktuell Ubuntu 22.04 LTS installiert. Wir
+erwarten, dass Ihr Praktikumsprojekt:
+
+- auf diesen Rechnern **fehlerfrei kompiliert**
+- und zum Abschluss **fehlerfrei funktioniert**.
+
+Unsere Laborrechner sind für das Praktikum vorbereitet und enthalten
+insbesondere von uns geforderte Programme. Zu Beginn sind jedoch einige
+persönliche Einstellungen noch zu erledigen, die unter dem Punkt [Setup](#setup)
+besprochen werden.
+
+## 🔭 Prerequisites
+
+### Git
+
+Um dieses Projekt lokal zu nutzen, wird Git benötigt, da es uns ermöglicht,
+den gesamten Projektcode von GitLab zu klonen/kopieren und Änderungen mit dem
+Stand im GitLab zu synchronisieren.
 
 ```sh
-sudo apt-get install git
+sudo apt install git
 ```
 
-Um das Praktikumsprojekt benutzen zu können, müssen Sie cmake und gcc installiert haben.
+Dokumentation, wie Git verwendet wrid bzw. wie das repo geklont werden kann.
+
+### CMake und GCC
+
+Um das Praktikumsprojekt bauen zu können, müssen Sie cmake und gcc
+installiert haben.
 
 ```sh
-sudo apt-get install cmake gcc
+sudo apt install -y cmake gcc
 ```
 
-Damit Sie das docs/generate_Documentation.sh Skript verwenden können, um die doxygen-Dokumentation zu erstellen, benötigen Sie doxygen, make, pdflatex und graphviz.
+## 🔧 Setup
 
-```sh
-sudo apt-get install doxygen make texlive-latex-base graphviz
-```
+Stellen Sie sicher, dass Sie alle [prerequisites](#-prerequisites) installiert haben.
 
-### Setup
+Die Versionierung des Praktikums geschieht über das GitLab der FH-Münster. Um
+lokal auf einem Rechner an dem Projekt weiterzuentwickeln, muss das Projekt
+lokal auf den Rechner kopiert werden.
 
-Die Versionierung des Praktikums geschieht über das GitLab der FH-Münster. Um lokal auf einem Rechner an dem Projekt weiterzuentwickeln, muss das Projekt lokal auf den Rechner kopiert werden.
-
-Hilfreich, um git/gitlab kennenzulernen: 
+Hilfreich, um git/gitlab kennenzulernen:
 
 - [https://git.fh-muenster.de/help/topics/git/get_started.md](https://git.fh-muenster.de/help/topics/git/get_started.md)
 - [https://about.gitlab.com/images/press/git-cheat-sheet.pdf](https://about.gitlab.com/images/press/git-cheat-sheet.pdf)
 
-SSH-Key für die Kommunikation mit dem Gitlab aufsetzen: 
+### SSH Keys
 
-- [https://docs.gitlab.com/ee/user/ssh.html](https://docs.gitlab.com/ee/user/ssh.html)
+Um Ihr Leben zu erleichtern, sollten Sie ein SSH-Key für GitLab erstellen. Damit
+müssen Sie nicht jedes Mal Ihr Passwort eingeben, wenn Sie ein Repository klonen
+oder aktualisieren. Dazu finden Sie [hier](https://docs.gitlab.com/ee/user/ssh.html)
+eine Anleitung, wie Sie ein SSH-Key für das GitLab erstellen.
 
-#### Clonen des Projektes
+### Clonen des Projektes
 
 ```sh
 cd my-folder
@@ -77,138 +110,140 @@ git clone ssh://git@git.fh-muenster.de:2323/<link-zum-projekt>.git
 cd <projektordner>
 ```
 
-### Building
+### Anfangen zu arbeiten
 
-Das Projekt lässt sich wie folgt per CMake bauen
+Nachdem Sie das Projekt geklont haben, können Sie anfangen zu arbeiten.
+Sie können dieses Repository **vollständig** bearbeiten und anpassen. Als
+einzige Bedingung gilt, dass Sie die Struktur des Projektes beibehalten, also
+die Ordner
 
-CMake: [https://cmake.org/getting-started/]
+- `osmpExecutables` für die OSMP-Executables
+- `osmpRunner` für den OSMP-Runner
+- `osmpLibrary` für die OSMP-Library
+
+verwenden. Ansonsten können Sie das Projekt nach Ihren Wünschen anpassen!
+
+**Beispielsweise** können Sie den Parser für die OSMP-Runner Argumente in eine eigene
+Datei auslagern und dann im osmpRunner über ein `#include "parser.h"` einbinden.
+
+## 🪄 CMake
+
+CMake ist ein Build-System-Generator. Es erstellt aus einer CMake-Datei
+(CMakeLists.txt) ein Build-System, das dann genutzt werden kann, um das Projekt
+zu bauen.
+
+### Nutzung von ASAN (AddressSanitizer)
+
+Sie haben die Möglichkeit, den [AddressSanitizer](https://github.com/google/sanitizers/wiki/addresssanitizer)
+(ASAN) zu nutzen, um Speicherfehler zu finden. ASAN ist ein Werkzeug, das in
+modernen GCC- und Clang-Compilern enthalten ist. Es kann verwendet werden, um
+Speicherfehler wie Buffer Overflows, Undefiniertes Verhalten und Speicherlecks
+zu finden.
+
+```cmake title="CMakeLists.txt"
+#== ASAN ==#
+# Ändern Sie den Wert von "OFF" zu "ON", um AddressSanitizer zu aktivieren
+option(USE_ASAN "AddressSanitizer aktivieren" OFF)
+compile_with_asan(${USE_ASAN})
+```
+
+Um ASAN zu nutzen, müssen Sie die CMake-Variable `USE_ASAN` auf `ON` setzen.
+
+Dazu können Sie entweder die Variable in der CMakeLists.txt setzen oder beim
+Aufruf von CMake die Variable setzen (z. B. `cmake -DUSE_ASAN=ON .`).
+
+### Hinzufügen von osmpExecutables
+
+Um eine Executable hinzuzufügen, muss die [CMakeLists.txt](./CMakeLists.txt)
+bearbeitet werden. Hier finden Sie folgende Zeilen:
+
+```cmake title="CMakeLists.txt"
+#== Executables ==#
+set(EXECUTABLES
+    NAME osmpRun
+    SOURCES src/osmp_runner/osmp_run.c src/osmp_runner/osmp_run.h
+    NAME echoAll
+    SOURCES src/osmpExecutables/echoAll.c
+    # Neue Executables hier einfügen
+    # NAME <name>
+    # SOURCES <source1> <source2> ...
+)
+```
+
+Hier müssen Sie den
+
+- **NAME** (Der Name Executable) und die
+- **SOURCES** (Die benötigten source-Dateien Leerzeichen separiert)
+
+in folgendem Format hinzufügen:
+
+```cmake
+NAME <Name der Executable>
+SOURCES <Source-Dateien>
+```
+
+Über den Namen steuern Sie, wie die ausführbare Datei heißt. Diese Datei werden
+Sie dann in dem build Ordner finden (z. B. "build", "cmake-build-debug" oder
+"cmake-build-release").
+
+## 🏗️ Projekt bauen
+
+Das Projekt wird mit CMake gebaut. Sie können die IDE frei wählen.
+
+### Manuell über das Terminal
+
+Das Projekt lässt sich wie folgt manuell per CMake bauen
+
+CMake: [https://cmake.org/getting-started/](https://cmake.org/getting-started/)
 
 ```sh
 cd /path/to/project
 
-cmake . -B ./cmake-build-debug
+cmake -S . -B build
 
-cd cmake-build-debug
-
-cmake --build .
+cmake --build build
 ```
 
-### Hinzufügen von osmp_executables
+### CLion
 
-Das Hinzufügen von osmp_executables wird folgend am Beispiel einer osmpExecutable_echoall.c demonstriert.
+Nachdem Sie das Projekt in CLion geöffnet haben, sehen sie oben rechts folgendes:
 
-Um eine weitere Executable "osmpExecutable_echoall" zum Bausystem hinzuzufügen, müssen folgende Einträge vorgenommen werden:
+![CLion Übersicht](./.resources/cmake-clion/overview.png){ width=500px }
 
-```sh
-# ./CMakeLists.txt
-...
+Hier können Sie, indem Sie auf `osmpRun` klicke, die Executable auswählen, die
+Sie bauen möchten.
 
-set(SOURCES_FOR_EXECUTABLE_ECHOALL # <- NAME der Executable innerhalb von CMake
-    src/executables/osmpExecutable_echoall.c src/executables/osmpExecutable_echoall.h # <- Source und Header Dateien für die Executable
-    ${MAIN_SOURCES_FOR_EXECUTABLES} # <- Bereits besetzte Variable mit anderen Dateien, z. B. OSMP.h
-) 
+![Executable](./.resources/cmake-clion/select-executable.png){ width=500px }
 
-...
+### VScode
 
-add_executable(osmpExecutable_echoall ${SOURCES_FOR_EXECUTABLE_ECHOALL} ) # <- Executable bauen lassen
+Installieren Sie folgende Extensions:
 
-...
+- C/C++ Extension Pack
 
-target_link_libraries(osmpExecutable_echoall ${LIBRARIES}) # <- Genutzte Bibliotheken linken
-```
+Gehen Sie in die Kommando-Palette (CMD/CTRL + SHIFT + P) und suchen Sie nach
+`CMake: Konfigurieren`. Hier wählen Sie die entsprechende CMakeLists.txt Datei
+aus.
 
-### Testing
+Nun können Sie auf die CMake Extension (in dem Linken Reiter) gehen.
 
-Sie können Test Cases in der test/tests.json definieren.
+![CMake-Extension](./.resources/cmake-vscode/overview.png){ width=500px }
 
-Über die folgenden Skripte können diese Tests ausgeführt werden.
+Jetzt sollten Sie etwas ähnliches zu dem folgenden Bild sehen.
 
-- **runAllTests.sh** führt alle Tests, die in der tests.json definiert sind, aus.
-  ```sh
-  # Usage
-  ./runAllTests.sh
-  ```
-- **runAllTestsForOneExecutable.sh** erwartet einen Executable-Namen und führt alle Tests aus, die diese Executable nutzen.
-  ```sh
-  # Usage
-  ./runAllTestsForOneExecutable.sh osmpExecutable_exampleExecutable
-  ```
-- **runOneTest.sh** erwartet einen Testnamen und führt diesen Test aus.
-  ```sh
-  # Usage
-  ./runOneTest.sh ExampleTest
-  ```
+![CMake-Details](./.resources/cmake-vscode/extension-details.png){ width=500px }
 
-#### Aufbau der test.json
+Hier können Sie bei `Debug` die Build-Variante konfigurieren
 
-Die *test.json* beinhaltet eine Liste von Ausführungen der verschiedenen osmp_executables und lässt sich beliebig erweitern.
+![CMake-Details](./.resources/cmake-vscode/build-variant.png){ width=500px }
 
-```json
-{
-   "TestName": "ExampleTest",
-   "ProcAnzahl": 5,
-   "PfadZurLogDatei": "/path/to/logfile",
-   "LogVerbositaet": 5,
-   "osmp_executable": "osmpExecutable_exampleExecutable",
-   "parameter": [
-      "param1",
-      "param2",
-      7,
-      "param4"
-   ]
-}
-```
+Und nun können Sie in der Kommando-Palette mit `CMake: Build` die Executables
+bauen.
 
-Die Parameter der Ausführung werden in den entsprechenden Variablen angegeben; "TestName" ist frei wählbar und dient nur der Zuordnung.
-Der Testname sollte **nicht** mehrfach vorkommen. Sonst führt das runOneTest.sh Skript diesen nicht aus.
-
-Ist **PfadZurLogDatei** ein leerer String (""), wird dieser nicht verwendet und auch kein -L als Argument übergeben.
-Es kann jedoch ein Leerzeichen als Pfad angegeben werden (" "). In diesem Fall wird lediglich ein -L als Argument übergeben.
-
-Die **LogVerbositaet** wird nur dann nicht übergeben, wenn diese auf 0 gesetzt wird.
-Auch hier kann beim Angeben eines Leerzeichens lediglich das "-V" als Argument getestet werden.
-
->**NOTE:** Ein Test wird als "Passed" angesehen, falls der OSMP-Starter mit dem exitCode 0 beendet wird (Um z. B. Synchronisation zu testen reichen diese tests nicht aus).
-
-### CI/CD Testing
-
-Sobald sie ihren Code zu GitLab pushen, wird automatisch eine Pipeline gestartet, die alle Tests ausführt und auf Ihren Erfolg prüft.
-
-## Overview <a name="overview"></a>
-
-Das Projekt kommt mit ein paar Beispiel OSMP-Executables, der aus zu implementierenden Header Datei der OSMP-Library, als auch dem grundlegenden OSMP-Runner
-
-```text
-📁<projektordner>
-├── 📁docs/
-│   ├── Doxyfile
-│   ├── generate_Documentation.sh
-│   └── OSMP_Documentation.pdf
-├── 📁src/
-│   ├── 📁osmp_executables/
-│   │   ├── osmp_Executable_SendIRecv.c
-│   │   └── osmp_Executable_SendRecv.c
-│   ├── 📁osmp_library/
-│   │   ├── OSMP.h
-│   │   ├── osmplib.c
-│   │   └── osmplib.h
-│   └── 📁osmp_runner/
-│       ├── osmp_run.c
-│       └── osmp_run.h
-├── 📁test/
-│   ├── common.sh
-│   ├── runAllTests.sh
-│   ├── runAllTestsForOneExecutable.sh
-│   ├── runOneTest.sh
-│   └── tests.json
-├── .gitignore
-├── .gitlab-ci.yml
-├── CMakeLists.txt
-└── README.md
-```
+![Kommando-Palette](./.resources/cmake-vscode/command-palette.png){ width=500px }
 
 <div align="right" style="text-align: right">
 
-   [(nach oben)](#betriebssysteme)
+[(nach oben)](#betriebssysteme)
 
 </div>
