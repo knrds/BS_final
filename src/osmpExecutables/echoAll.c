@@ -8,10 +8,9 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-  for (int i = 0; i < argc; i++) {
-    fprintf(stdout, "%s ", argv[i]);
-  }
-  fprintf(stdout, "\n");
+  fprintf(stdout, "Geben Sie hier die Argumente aus.\n");
+
+  fprintf(stdout, "Nun ein neuer Abschnitt, der die pid und ppid ausgibt.\n");
 
   return 0;
 }
