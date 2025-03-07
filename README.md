@@ -36,15 +36,25 @@
 
 ## 🚨 Wichtiges
 
-Obwohl Sie sich mit Ihrer FH-Kennung auch an unseren Rechnern mit dem
-gewohnten Passwort anmelden können, verwenden wir eigene Homeverzeichnisse,
-die von eigenen Servern gemountet werden. Als Konsequenz daraus sind Ihre
-Dateien nur auf den Betriebssystem-Laborrechnern verfügbar und nicht auf den
-von Laboren.
+Obwohl Sie sich mit Ihrer FH-Kennung auch an unseren Rechnern mit dem gewohnten Passwort anmelden können, verwenden wir eigene Homeverzeichnisse, die von eigenen Servern gemountet werden.
+Deswegen sind Ihre Dateien nur auf den Betriebssystem-Laborrechnern verfügbar und nicht auf den von anderen Laboren.
 
-Unser Labornetz ist zudem von außen **nicht** nutzbar.
-Sorgen Sie also bitte dafür, dass Sie Ihre Dateien zum Ende des Praktikums
-möglichst in Ihrem Git-Repository ablegen.
+Unser Labornetz ist zudem **nicht** von außen nutzbar.
+Sorgen Sie also bitte dafür, dass Sie Ihre Dateien zum Ende des Praktikums in Ihrem Git-Repository ablegen.
+
+## 🚀 Getting Started
+
+Auf unseren Laborrechnern ist aktuell Ubuntu 22.04 LTS installiert.
+Wir erwarten, dass Ihr Praktikumsprojekt:
+
+- auf diesen Rechnern **fehlerfrei kompiliert**
+- und zum Abschluss **fehlerfrei funktioniert**.
+
+## 🚨 Wichtiges
+
+## 🔭 Prerequisites
+
+### Git
 
 ## 🚀 Getting Started
 
@@ -75,8 +85,7 @@ Dokumentation, wie Git verwendet wrid bzw. wie das repo geklont werden kann.
 
 ### CMake und GCC
 
-Um das Praktikumsprojekt bauen zu können, müssen Sie cmake und gcc
-installiert haben.
+Um das Praktikumsprojekt bauen zu können, müssen Sie cmake und gcc installiert haben.
 
 ```sh
 sudo apt install -y cmake gcc
@@ -86,9 +95,8 @@ sudo apt install -y cmake gcc
 
 Stellen Sie sicher, dass Sie alle [prerequisites](#-prerequisites) installiert haben.
 
-Die Versionierung des Praktikums geschieht über das GitLab der FH-Münster. Um
-lokal auf einem Rechner an dem Projekt weiterzuentwickeln, muss das Projekt
-lokal auf den Rechner kopiert werden.
+Die Versionierung des Praktikums geschieht über das GitLab der FH-Münster.
+Um lokal auf einem Rechner an dem Projekt weiterzuentwickeln, muss das Projekt lokal auf den Rechner kopiert werden.
 
 Hilfreich, um git/gitlab kennenzulernen:
 
@@ -97,10 +105,9 @@ Hilfreich, um git/gitlab kennenzulernen:
 
 ### SSH Keys
 
-Um Ihr Leben zu erleichtern, sollten Sie ein SSH-Key für GitLab erstellen. Damit
-müssen Sie nicht jedes Mal Ihr Passwort eingeben, wenn Sie ein Repository klonen
-oder aktualisieren. Dazu finden Sie [hier](https://docs.gitlab.com/ee/user/ssh.html)
-eine Anleitung, wie Sie ein SSH-Key für das GitLab erstellen.
+Um Ihr Leben zu erleichtern, sollten Sie ein SSH-Key für GitLab erstellen.
+Damit müssen Sie nicht jedes Mal Ihr Passwort eingeben, wenn Sie ein Repository klonen oder aktualisieren.
+Dazu finden Sie [hier](https://docs.gitlab.com/ee/user/ssh.html) eine Anleitung, wie Sie ein SSH-Key für das GitLab erstellen.
 
 ### Clonen des Projektes
 
@@ -113,32 +120,28 @@ cd <projektordner>
 ### Anfangen zu arbeiten
 
 Nachdem Sie das Projekt geklont haben, können Sie anfangen zu arbeiten.
-Sie können dieses Repository **vollständig** bearbeiten und anpassen. Als
-einzige Bedingung gilt, dass Sie die Struktur des Projektes beibehalten, also
-die Ordner
+Sie können dieses Repository **vollständig** bearbeiten und anpassen.
+Als einzige Bedingung gilt, dass Sie die Struktur des Projektes beibehalten, also die Ordner
 
 - `osmpExecutables` für die OSMP-Executables
 - `osmpRunner` für den OSMP-Runner
 - `osmpLibrary` für die OSMP-Library
 
-verwenden. Ansonsten können Sie das Projekt nach Ihren Wünschen anpassen!
+verwenden.
+Ansonsten können Sie das Projekt nach Ihren Wünschen anpassen!
 
-**Beispielsweise** können Sie den Parser für die OSMP-Runner Argumente in eine eigene
-Datei auslagern und dann im osmpRunner über ein `#include "parser.h"` einbinden.
+**Beispielsweise** können Sie den Parser für die OSMP-Runner Argumente in eine eigene Datei auslagern und dann im osmpRunner über ein `#include "parser.h"` einbinden.
 
 ## 🪄 CMake
 
-CMake ist ein Build-System-Generator. Es erstellt aus einer CMake-Datei
-(CMakeLists.txt) ein Build-System, das dann genutzt werden kann, um das Projekt
-zu bauen.
+CMake ist ein Build-System-Generator.
+Es erstellt aus einer CMake-Datei (CMakeLists.txt) ein Build-System, das dann genutzt werden kann, um das Projekt zu bauen.
 
 ### Nutzung von ASAN (AddressSanitizer)
 
-Sie haben die Möglichkeit, den [AddressSanitizer](https://github.com/google/sanitizers/wiki/addresssanitizer)
-(ASAN) zu nutzen, um Speicherfehler zu finden. ASAN ist ein Werkzeug, das in
-modernen GCC- und Clang-Compilern enthalten ist. Es kann verwendet werden, um
-Speicherfehler wie Buffer Overflows, Undefiniertes Verhalten und Speicherlecks
-zu finden.
+Sie haben die Möglichkeit, den [AddressSanitizer](https://github.com/google/sanitizers/wiki/addresssanitizer) (ASAN) zu nutzen, um Speicherfehler zu finden.
+ASAN ist ein Werkzeug, das in modernen GCC- und Clang-Compilern enthalten ist.
+Es kann verwendet werden, um Speicherfehler wie Buffer Overflows, Undefiniertes Verhalten und Speicherlecks zu finden.
 
 ```cmake title="CMakeLists.txt"
 #== ASAN ==#
@@ -149,13 +152,11 @@ compile_with_asan(${USE_ASAN})
 
 Um ASAN zu nutzen, müssen Sie die CMake-Variable `USE_ASAN` auf `ON` setzen.
 
-Dazu können Sie entweder die Variable in der CMakeLists.txt setzen oder beim
-Aufruf von CMake die Variable setzen (z. B. `cmake -DUSE_ASAN=ON .`).
+Dazu können Sie entweder die Variable in der CMakeLists.txt setzen oder beim Aufruf von CMake die Variable setzen (z. B. `cmake -DUSE_ASAN=ON .`).
 
 ### Hinzufügen von osmpExecutables
 
-Um eine Executable hinzuzufügen, muss die [CMakeLists.txt](./CMakeLists.txt)
-bearbeitet werden. Hier finden Sie folgende Zeilen:
+Um eine Executable hinzuzufügen, muss die [CMakeLists.txt](./CMakeLists.txt) bearbeitet werden. Hier finden Sie folgende Zeilen:
 
 ```cmake title="CMakeLists.txt"
 #== Executables ==#
@@ -182,9 +183,8 @@ NAME <Name der Executable>
 SOURCES <Source-Dateien>
 ```
 
-Über den Namen steuern Sie, wie die ausführbare Datei heißt. Diese Datei werden
-Sie dann in dem build Ordner finden (z. B. "build", "cmake-build-debug" oder
-"cmake-build-release").
+Über den Namen steuern Sie, wie die ausführbare Datei heißt.
+Diese Datei werden Sie dann in dem build Ordner finden (z. B. "build", "cmake-build-debug" oder "cmake-build-release").
 
 ## 🏗️ Projekt bauen
 
@@ -210,8 +210,7 @@ Nachdem Sie das Projekt in CLion geöffnet haben, sehen sie oben rechts folgende
 
 ![CLion Übersicht](./.resources/cmake-clion/overview.png){ width=500px }
 
-Hier können Sie, indem Sie auf `osmpRun` klicke, die Executable auswählen, die
-Sie bauen möchten.
+Hier können Sie, indem Sie auf `osmpRun` klicke, die Executable auswählen, die Sie bauen möchten.
 
 ![Executable](./.resources/cmake-clion/select-executable.png){ width=500px }
 
@@ -237,8 +236,7 @@ Hier können Sie bei `Debug` die Build-Variante konfigurieren
 
 ![CMake-Details](./.resources/cmake-vscode/build-variant.png){ width=500px }
 
-Und nun können Sie in der Kommando-Palette mit `CMake: Build` die Executables
-bauen.
+Und nun können Sie in der Kommando-Palette mit `CMake: Build` die Executables bauen.
 
 ![Kommando-Palette](./.resources/cmake-vscode/command-palette.png){ width=500px }
 
