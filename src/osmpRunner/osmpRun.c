@@ -7,52 +7,43 @@
 
 #include "osmpRun.h"
 
-int main(int argc, char **argv) {
-  pid_t pid;
-  int a;
+long long timeInMilliseconds(void) {
+  struct timeval tv;
 
-  fprintf(stdout,
-          "Dies ist eine rudimentäre Implementierung des Runners und dient "
-          "dazu Ihnen zu zeigen, wie es prinzipiell ablaufen sollte. Ihre "
-          "Aufgabe ist es, diese Implementierung (den Code) entsprechend der "
-          "Aufgabenstellung zu ändern.\n");
+  gettimeofday(&tv, NULL);
+  return (((long long)tv.tv_sec) * 1000) + (tv.tv_usec / 1000);
+}
 
-  // TODO: Implementieren Sie hier die Funktionalität des Runners und passen Sie
-  // den Code entsprechend an. Das bedeutet, dass Sie hier entsprechende
-  // Code-Blöcke löschen, neu schreiben oder anpassen müssen.
+struct thread_data {
+  int thread_id;
+  char *message;
+};
 
-  if (2 > argc) {
-    fprintf(stderr, "Usage: %s <executable> [args...]\n", argv[0]);
+void *thread_func(void *arg) {
+  struct thread_data *data = (struct thread_data *)arg;
+  printf("[Thread] [%lld] %s\n", timeInMilliseconds(), data->message);
+  return NULL;
+}
+
+int main(void) {
+  pthread_t thread;
+  struct thread_data data;
+  int rv;
+
+  data.thread_id = 1;
+  data.message = "Hallo Welt!";
+
+  rv = pthread_create(&thread, NULL, thread_func, &data);
+  if (0 != rv) {
+    fprintf(stderr, "Fehler bei pthread_create\n");
     exit(EXIT_FAILURE);
   }
 
-  pid = fork();
-  if (-1 == pid) {
-    fprintf(stderr, "Fehler bei fork\n");
-    exit(EXIT_FAILURE);
-  }
+  printf("[Main] [%lld] %s\n", timeInMilliseconds(), data.message);
 
-  if (0 == pid) {
-    // Kindprozess
-
-    // Ändern Sie gerne die exec* Funktion, wenn Sie eine andere benutzen
-    // möchten.
-    execv(argv[1], &argv[1]);
-    // Execv ist fehlgeschlagen...
-    perror("execv");
-    exit(EXIT_FAILURE);
-  }
-
-  // Elternprozess
-  a = OSMP_SUCCESS;
-  if (OSMP_FAILURE == a) {
-    fprintf(stderr, "Fehler bei ...\n");
-    exit(EXIT_FAILURE);
-  }
-  printf("OSMP_SUCCESS: %d\n", a);
-  a = OSMP_FAILURE;
-  if (OSMP_FAILURE == a) {
-    fprintf(stderr, "Fehler bei ...\n");
+  rv = pthread_join(thread, NULL);
+  if (0 != rv) {
+    fprintf(stderr, "Fehler bei pthread_join\n");
     exit(EXIT_FAILURE);
   }
 
