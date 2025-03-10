@@ -60,11 +60,15 @@ typedef enum OSMP_Datatype {
   OSMP_BYTE             // char
 } OSMP_Datatype;
 
+/**
+ * Die OSMP-Logtypen.
+ * 
+ */
 typedef enum OSMP_Verbosity_t {
-  OSMP_LOG_NONE,
-  OSMP_LOG_BIB,
-  OSMP_LOG_MEM,
-  OSMP_LOG_FAILS,
+  OSMP_LOG_NONE,  // -v 0 nicht mitgegeben.
+  OSMP_LOG_BIB,   // -v 1
+  OSMP_LOG_MEM,   // -v 2
+  OSMP_LOG_FAILS, // -v 3
 } OSMP_Verbosity;
 
 /**
@@ -311,10 +315,10 @@ int OSMP_CreateRequest(OSMP_Request *request);
 int OSMP_RemoveRequest(OSMP_Request *request);
 
 /**
- * Loggt die Nachricht *message* in die entsprechende Logdatei.
+ * Loggt die Nachricht *message* in die entsprechende Logdatei (Parameter: -l), falls die gesetzte Verbosität (Parameter: -v) größer als *verbosity* ist.
  * 
- * @param [in] verbosity
- * @param [in] message
+ * @param [in] verbosity Level, ab dem die message ausgegeben werden soll.
+ * @param [in] message Nachricht, die geloggt werden soll.
  *
  * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
