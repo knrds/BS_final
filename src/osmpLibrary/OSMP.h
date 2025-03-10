@@ -60,6 +60,13 @@ typedef enum OSMP_Datatype {
   OSMP_BYTE             // char
 } OSMP_Datatype;
 
+typedef enum OSMP_Verbosity_t {
+  OSMP_LOG_NONE,
+  OSMP_LOG_BIB,
+  OSMP_LOG_MEM,
+  OSMP_LOG_FAILS,
+} OSMP_Verbosity;
+
 /**
  * Gibt die maximale Länge der Nutzlast einer Nachricht zurück.
  *
@@ -302,5 +309,15 @@ int OSMP_CreateRequest(OSMP_Request *request);
  * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
  */
 int OSMP_RemoveRequest(OSMP_Request *request);
+
+/**
+ * Loggt die Nachricht *message* in die entsprechende Logdatei.
+ * 
+ * @param [in] verbosity
+ * @param [in] message
+ *
+ * @return Im Erfolgsfall OSMP_SUCCESS, sonst OSMP_FAILURE
+ */
+int OSMP_Log(OSMP_Verbosity verbosity, char *message);
 
 #endif  // OSMP_H

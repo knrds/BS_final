@@ -163,3 +163,11 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
   // TODO: Implementieren Sie hier die Funktionalität der Funktion.
   return OSMP_FAILURE;
 }
+
+int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
+  UNUSED(verbosity);
+  UNUSED(message);
+  
+  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+  return OSMP_FAILURE;
+}
