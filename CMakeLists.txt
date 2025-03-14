@@ -40,7 +40,7 @@ set(LIBRARIES
 #== Executables ==#
 set(EXECUTABLES
     NAME osmpRun
-    SOURCES src/osmpRunner/osmpRun.c src/osmpRunner/osmpRun.h
+    SOURCES src/osmpRunner/osmpRun.c
     NAME echoAll
     SOURCES src/osmpExecutables/echoAll.c
     # Neue Executables hier einfügen

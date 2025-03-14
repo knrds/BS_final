@@ -6,8 +6,8 @@
  * Verwendung der OSMP-Bibliothek definiert.
  ******************************************************************************/
 
-#ifndef OSMP_LIB_H
-#define OSMP_LIB_H
+#ifndef __OSMP_LIB_H__
+#define __OSMP_LIB_H__
 
 #include "OSMP.h"
 
@@ -17,7 +17,6 @@
  *
  * @param x Die zu verwendende Variable
  */
-#define UNUSED(x) \
-  { (void)(x); }
+#define UNUSED(x) (void)(x);
 
-#endif  // OSMP_LIB_H
+#endif  // __OSMP_LIB_H__

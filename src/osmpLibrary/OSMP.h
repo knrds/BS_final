@@ -6,8 +6,8 @@
  * Kernfunktionen wie z. B. OSMP_Test() und vorgegebene Konstanten.
  ******************************************************************************/
 
-#ifndef OSMP_H
-#define OSMP_H
+#ifndef __OSMP_H__
+#define __OSMP_H__
 
 /**
  * Alle OSMP-Funktionen liefern im Erfolgsfall OSMP_SUCCESS als Rückgabewert.
@@ -19,7 +19,7 @@
 /**
  * Im Fehlerfall liefern die OSMP-Funktionen den Wert OSMP_FAILURE zurück.
  * Ein Fehler muss jedoch nicht zwingend zum Programmende führen.
- * Beispiel: Wenn ein Prozess eine Nachricht an einen nicht existierenden 
+ * Beispiel: Wenn ein Prozess eine Nachricht an einen nicht existierenden
  * Prozess mit OSMP_Send() schickt, sollte OSMP_Send OSMP_FAILURE zurückgeben,
  * aber nicht das Programm beenden.
  */
@@ -62,13 +62,12 @@ typedef enum OSMP_Datatype {
 
 /**
  * Die OSMP-Logtypen.
- * 
  */
 typedef enum OSMP_Verbosity_t {
-  OSMP_LOG_NONE,  // -v 0 nicht mitgegeben.
-  OSMP_LOG_BIB,   // -v 1
-  OSMP_LOG_MEM,   // -v 2
-  OSMP_LOG_FAILS, // -v 3
+  OSMP_LOG_NONE,      // -v 0 nicht mitgegeben.
+  OSMP_LOG_BIB_CALL,  // -v 1
+  OSMP_LOG_MEM,       // -v 2
+  OSMP_LOG_FAILS,     // -v 3
 } OSMP_Verbosity;
 
 /**
@@ -316,7 +315,7 @@ int OSMP_RemoveRequest(OSMP_Request *request);
 
 /**
  * Loggt die Nachricht *message* in die entsprechende Logdatei (Parameter: -l), falls die gesetzte Verbosität (Parameter: -v) größer als *verbosity* ist.
- * 
+ *
  * @param [in] verbosity Level, ab dem die message ausgegeben werden soll.
  * @param [in] message Nachricht, die geloggt werden soll.
  *
@@ -324,4 +323,4 @@ int OSMP_RemoveRequest(OSMP_Request *request);
  */
 int OSMP_Log(OSMP_Verbosity verbosity, char *message);
 
-#endif  // OSMP_H
+#endif  // __OSMP_H__

@@ -5,8 +5,8 @@
  * Beinhaltet alle notwendigen Abhängigkeiten für den OSMP-Runner.
  ******************************************************************************/
 
-#ifndef OSMP_RUN_H
-#define OSMP_RUN_H
+#ifndef __OSMP_RUN_H__
+#define __OSMP_RUN_H__
 
 #include <pthread.h>
 #include <stdio.h>
@@ -17,4 +17,4 @@
 
 #include "../osmpLibrary/OSMP.h"
 
-#endif  // OSMP_RUN_H
+#endif  // __OSMP_RUN_H__

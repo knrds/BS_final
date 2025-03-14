@@ -14,38 +14,42 @@ long long timeInMilliseconds(void) {
   return (((long long)tv.tv_sec) * 1000) + (tv.tv_usec / 1000);
 }
 
-struct thread_data {
+struct _thread_data_t {
   int thread_id;
   char *message;
 };
+typedef struct _thread_data_t thread_data_t;
 
 void *thread_func(void *arg) {
-  struct thread_data *data = (struct thread_data *)arg;
-  printf("[Thread] [%lld] %s\n", timeInMilliseconds(), data->message);
+  thread_data_t *thread_data = (thread_data_t *)arg;
+  printf("[Thread] [%lld] %s\n", timeInMilliseconds(), thread_data->message);
   return NULL;
 }
 
 int main(void) {
   pthread_t thread;
-  struct thread_data data;
+  thread_data_t thread_data;
   int rv;
 
-  data.thread_id = 1;
-  data.message = "Hallo Welt!";
+  printf("[Main]   [%lld] Beispielcode, der einen Thread startet und einen String ausgibt.\n", timeInMilliseconds());
 
-  rv = pthread_create(&thread, NULL, thread_func, &data);
+  thread_data.thread_id = 1;
+  thread_data.message = "Hallo Welt!";
+
+  rv = pthread_create(&thread, NULL, thread_func, &thread_data);
   if (0 != rv) {
     fprintf(stderr, "Fehler bei pthread_create\n");
     exit(EXIT_FAILURE);
   }
 
-  printf("[Main] [%lld] %s\n", timeInMilliseconds(), data.message);
+  printf("[Main]   [%lld] %s\n", timeInMilliseconds(), thread_data.message);
 
   rv = pthread_join(thread, NULL);
   if (0 != rv) {
     fprintf(stderr, "Fehler bei pthread_join\n");
     exit(EXIT_FAILURE);
   }
+  printf("[Main]   [%lld] Thread beendet\n", timeInMilliseconds());
 
   return 0;
 }

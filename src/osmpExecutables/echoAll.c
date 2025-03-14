@@ -7,7 +7,11 @@
 
 #include <stdio.h>
 
+#define UNUSED(x) (void)(x);
+
 int main(int argc, char **argv) {
+  UNUSED(argc);
+  UNUSED(argv);
   fprintf(stdout, "Geben Sie hier die Argumente aus.\n");
 
   fprintf(stdout, "Nun ein neuer Abschnitt, der die pid und ppid ausgibt.\n");
