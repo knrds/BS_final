@@ -17,4 +17,4 @@
 
 #include "../osmpLibrary/OSMP.h"
 
-#endif  // __OSMP_RUN_H__
+#endif // __OSMP_RUN_H__

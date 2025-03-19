@@ -14,7 +14,9 @@
   - [Git](#git)
   - [CMake und GCC](#cmake-und-gcc)
 - [🔧 Setup](#-setup)
+  - [SSH Keys](#ssh-keys)
   - [Clonen des Projektes](#clonen-des-projektes)
+  - [Anfangen zu arbeiten](#anfangen-zu-arbeiten)
 - [🪄 CMake](#-cmake)
   - [Nutzung von ASAN (AddressSanitizer)](#nutzung-von-asan-addresssanitizer)
   - [Hinzufügen von osmpExecutables](#hinzufügen-von-osmpexecutables)
@@ -31,8 +33,9 @@
 4. Mit Git, GitLab, SSH-Keys, CMake und GCC vertraut machen.
 5. **git**, **cmake** und **gcc** installieren
 6. Projekt klonen (`git clone <link>`)
-7. Projekt bauen (`mkdir -P build && cd build && cmake .. && cmake --build .`)
-8. Executable ausführen (`./build/<executable>`)
+7. In das Projektverzeichnis wechseln (`cd <projektordner>`)
+8. Projekt bauen (`cmake -S . -B build -D CMAKE_VERBOSE_MAKEFILE=ON && cmake --build .`)
+9. Executable ausführen (`./build/<executable>`)
 
 ## 🚨 Wichtiges
 
@@ -41,20 +44,6 @@ Deswegen sind Ihre Dateien nur auf den Betriebssystem-Laborrechnern verfügbar u
 
 Unser Labornetz ist zudem **nicht** von außen nutzbar.
 Sorgen Sie also bitte dafür, dass Sie Ihre Dateien zum Ende des Praktikums in Ihrem Git-Repository ablegen.
-
-## 🚀 Getting Started
-
-Auf unseren Laborrechnern ist aktuell Ubuntu 22.04 LTS installiert.
-Wir erwarten, dass Ihr Praktikumsprojekt:
-
-- auf diesen Rechnern **fehlerfrei kompiliert**
-- und zum Abschluss **fehlerfrei funktioniert**.
-
-## 🚨 Wichtiges
-
-## 🔭 Prerequisites
-
-### Git
 
 ## 🚀 Getting Started
 
@@ -152,7 +141,7 @@ compile_with_asan(${USE_ASAN})
 
 Um ASAN zu nutzen, müssen Sie die CMake-Variable `USE_ASAN` auf `ON` setzen.
 
-Dazu können Sie entweder die Variable in der CMakeLists.txt setzen oder beim Aufruf von CMake die Variable setzen (z. B. `cmake -DUSE_ASAN=ON .`).
+Dazu können Sie entweder die Variable in der CMakeLists.txt setzen oder beim Aufruf von CMake die Variable setzen (z. B. `cmake -DUSE_ASAN=ON ...`).
 
 ### Hinzufügen von osmpExecutables
 
@@ -197,10 +186,12 @@ Das Projekt lässt sich wie folgt manuell per CMake bauen
 CMake: [https://cmake.org/getting-started/](https://cmake.org/getting-started/)
 
 ```sh
-cd /path/to/project
+cd /pfad/zum/projektordner
 
-cmake -S . -B build
+# Konfigurieren des Projekts
+cmake -S . -B build -D CMAKE_VERBOSE_MAKEFILE=ON
 
+# Bauen der Binaries
 cmake --build build
 ```
 
