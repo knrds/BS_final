@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(Betriebssysteme C)
 
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_COMPILER gcc)
-
 #== Funktionen einbinden ==#
 include(${CMAKE_CURRENT_SOURCE_DIR}/.cmake/functions.cmake)
 
@@ -13,14 +10,11 @@ option(USE_ASAN "AddressSanitizer aktivieren" OFF)
 compile_with_asan(${USE_ASAN})
 
 #== Compiler Flags ==#
-set(CUSTOM_COMPILE_FLAGS
-    -pedantic
-    -Wall
-    -Werror
-    -Wextra
-    -Wconversion
-    -g
-)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_COMPILER gcc)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic -Wall -Werror -Wextra -Wconversion -g")
 
 #== Add Library target ==#
 set(LIBRARY_SRC_FILES
@@ -29,7 +23,6 @@ set(LIBRARY_SRC_FILES
     src/osmpLibrary/OSMP.h
 )
 add_library(libosmp STATIC ${LIBRARY_SRC_FILES})
-target_compile_options(libosmp PRIVATE ${CUSTOM_COMPILE_FLAGS})
 
 #== Define Libraries ALL executables link against ==#
 set(LIBRARIES

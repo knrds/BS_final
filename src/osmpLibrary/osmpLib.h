@@ -19,4 +19,4 @@
  */
 #define UNUSED(x) (void)(x);
 
-#endif  // __OSMP_LIB_H__
+#endif // __OSMP_LIB_H__

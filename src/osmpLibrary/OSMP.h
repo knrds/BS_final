@@ -48,26 +48,26 @@ typedef void *OSMP_Request;
  * OSMP-Funktionen gesendet bzw. empfangen werden sollen.
  */
 typedef enum OSMP_Datatype {
-  OSMP_SHORT,           // short int
-  OSMP_INT,             // int
-  OSMP_LONG,            // long int
-  OSMP_UNSIGNED_CHAR,   // unsigned char
-  OSMP_UNSIGNED,        // unsigned
-  OSMP_UNSIGNED_SHORT,  // unsigned short int
-  OSMP_UNSIGNED_LONG,   // unsigned long int
-  OSMP_FLOAT,           // float
-  OSMP_DOUBLE,          // double
-  OSMP_BYTE             // char
+  OSMP_SHORT,          // short int
+  OSMP_INT,            // int
+  OSMP_LONG,           // long int
+  OSMP_UNSIGNED_CHAR,  // unsigned char
+  OSMP_UNSIGNED,       // unsigned
+  OSMP_UNSIGNED_SHORT, // unsigned short int
+  OSMP_UNSIGNED_LONG,  // unsigned long int
+  OSMP_FLOAT,          // float
+  OSMP_DOUBLE,         // double
+  OSMP_BYTE            // char
 } OSMP_Datatype;
 
 /**
  * Die OSMP-Logtypen.
  */
 typedef enum OSMP_Verbosity_t {
-  OSMP_LOG_NONE,      // -v 0 nicht mitgegeben.
-  OSMP_LOG_BIB_CALL,  // -v 1
-  OSMP_LOG_MEM,       // -v 2
-  OSMP_LOG_FAILS,     // -v 3
+  OSMP_LOG_NONE,     // -v 0 nicht mitgegeben.
+  OSMP_LOG_BIB_CALL, // -v 1
+  OSMP_LOG_MEM,      // -v 2
+  OSMP_LOG_FAILS,    // -v 3
 } OSMP_Verbosity;
 
 /**
@@ -314,7 +314,8 @@ int OSMP_CreateRequest(OSMP_Request *request);
 int OSMP_RemoveRequest(OSMP_Request *request);
 
 /**
- * Loggt die Nachricht *message* in die entsprechende Logdatei (Parameter: -l), falls die gesetzte Verbosität (Parameter: -v) größer als *verbosity* ist.
+ * Loggt die Nachricht *message* in die entsprechende Logdatei (Parameter: -l),
+ * falls die gesetzte Verbosität (Parameter: -v) größer als *verbosity* ist.
  *
  * @param [in] verbosity Level, ab dem die message ausgegeben werden soll.
  * @param [in] message Nachricht, die geloggt werden soll.
@@ -323,4 +324,4 @@ int OSMP_RemoveRequest(OSMP_Request *request);
  */
 int OSMP_Log(OSMP_Verbosity verbosity, char *message);
 
-#endif  // __OSMP_H__
+#endif // __OSMP_H__
