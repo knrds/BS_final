@@ -8,12 +8,7 @@
 #ifndef __OSMP_RUN_H__
 #define __OSMP_RUN_H__
 
-#include <pthread.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <sys/time.h>
-#include <time.h>
 
 #include "../osmpLibrary/OSMP.h"
 
