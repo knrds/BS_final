@@ -150,9 +150,9 @@ Um eine Executable hinzuzufügen, muss die [CMakeLists.txt](./CMakeLists.txt) be
 ```cmake title="CMakeLists.txt"
 #== Executables ==#
 set(EXECUTABLES
-    NAME osmpRun
+    NAME osmprun
     SOURCES src/osmp_runner/osmp_run.c src/osmp_runner/osmp_run.h
-    NAME echoAll
+    NAME echoall
     SOURCES src/osmpExecutables/echoAll.c
     # Neue Executables hier einfügen
     # NAME <name>

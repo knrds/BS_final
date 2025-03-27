@@ -8,7 +8,7 @@
 #include "osmpRun.h"
 
 int main(void) {
-  printf("Implementieren Sie hier den osmpRunner\n");
+  printf("Implementieren Sie hier den OSMP-Runner\n");
 
   return 0;
 }
