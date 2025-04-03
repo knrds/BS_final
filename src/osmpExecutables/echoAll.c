@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
 
     for (int i = 1; i < argc ; i++) {
         fprintf(stdout,"Argument %d: %s\n", i, argv[i]);
-        sleep(1);
+        //sleep(1);
     }
 
     fprintf(stdout,"PID: %d \nPPID: %d \n", getpid(), getppid());

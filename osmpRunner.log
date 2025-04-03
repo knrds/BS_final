@@ -1,41 +1,7 @@
-[09:08:36] PID 94885: Starting 20 instances of ./build/echoall
-[09:08:36] PID 94885: Started instance 1 with PID 94886
-[09:08:36] PID 94885: Started instance 2 with PID 94887
-[09:08:36] PID 94885: Started instance 3 with PID 94888
-[09:08:36] PID 94885: Started instance 4 with PID 94889
-[09:08:36] PID 94885: Started instance 5 with PID 94890
-[09:08:36] PID 94885: Started instance 6 with PID 94891
-[09:08:36] PID 94885: Started instance 7 with PID 94892
-[09:08:36] PID 94885: Started instance 8 with PID 94893
-[09:08:36] PID 94885: Started instance 9 with PID 94894
-[09:08:36] PID 94885: Started instance 10 with PID 94895
-[09:08:36] PID 94885: Started instance 11 with PID 94896
-[09:08:36] PID 94885: Started instance 12 with PID 94897
-[09:08:36] PID 94885: Started instance 13 with PID 94898
-[09:08:36] PID 94885: Started instance 14 with PID 94899
-[09:08:36] PID 94885: Started instance 15 with PID 94900
-[09:08:36] PID 94885: Started instance 16 with PID 94901
-[09:08:36] PID 94885: Started instance 17 with PID 94902
-[09:08:36] PID 94885: Started instance 18 with PID 94903
-[09:08:36] PID 94885: Started instance 19 with PID 94904
-[09:08:36] PID 94885: Started instance 20 with PID 94905
-[09:08:42] PID 94885: Child process 94886 exited with code 0
-[09:08:42] PID 94885: Child process 94887 exited with code 0
-[09:08:42] PID 94885: Child process 94888 exited with code 0
-[09:08:42] PID 94885: Child process 94889 exited with code 0
-[09:08:42] PID 94885: Child process 94890 exited with code 0
-[09:08:42] PID 94885: Child process 94891 exited with code 0
-[09:08:42] PID 94885: Child process 94892 exited with code 0
-[09:08:42] PID 94885: Child process 94893 exited with code 0
-[09:08:42] PID 94885: Child process 94894 exited with code 0
-[09:08:42] PID 94885: Child process 94895 exited with code 0
-[09:08:42] PID 94885: Child process 94896 exited with code 0
-[09:08:42] PID 94885: Child process 94897 exited with code 0
-[09:08:42] PID 94885: Child process 94898 exited with code 0
-[09:08:42] PID 94885: Child process 94899 exited with code 0
-[09:08:42] PID 94885: Child process 94900 exited with code 0
-[09:08:42] PID 94885: Child process 94901 exited with code 0
-[09:08:42] PID 94885: Child process 94902 exited with code 0
-[09:08:42] PID 94885: Child process 94903 exited with code 0
-[09:08:42] PID 94885: Child process 94904 exited with code 0
-[09:08:42] PID 94885: Child process 94905 exited with code 0
+[10:07:16] PID 102024: Starting 3 instances of ./echoAll
+[10:07:16] PID 102024: Started instance 1 with PID 102025
+[10:07:16] PID 102024: Started instance 2 with PID 102026
+[10:07:16] PID 102024: Started instance 3 with PID 102027
+[10:07:16] PID 102024: Child process 102025 exited with code 0
+[10:07:16] PID 102024: Child process 102026 exited with code 0
+[10:07:16] PID 102024: Child process 102027 exited with code 0

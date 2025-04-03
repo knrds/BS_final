@@ -102,6 +102,7 @@ int main(int argc, char *argv[]) {
     snprintf(buffer, sizeof(buffer), "Starting %d instances of %s", process_count, executable_path);
     log_event_level(buffer, 1);
 
+    pid_t pid_children[process_count]; // Array to store child process IDs
 
     for (int i = 0; i < process_count; i++) {
         pid_t pid = fork();
@@ -123,6 +124,7 @@ int main(int argc, char *argv[]) {
         } else{
             // Parent process
             snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d", i + 1, pid);
+            pid_children[i] = pid;
             log_event_level(buffer, 1);
         }
     }
@@ -131,7 +133,7 @@ int main(int argc, char *argv[]) {
     // Wait for all child processes to finish
     for (int i = 0; i < process_count; i++) {
         int status;
-        pid_t pid = wait(&status); // Wait for any child process to finish - returns the PID of the child process that terminated - saves in status
+        pid_t pid = waitpid(pid_children[i], &status, 0); // Wait for the child process to finish
 
         if (pid == -1) {
             perror("Error: Wait failed");
