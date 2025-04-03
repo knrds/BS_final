@@ -1,20 +1,23 @@
-/******************************************************************************
- * FILE: echoall.c
- * AUTHOR: Darius Malysiak
- * DESCRIPTION:
- * First OSMP Executable, it simply echoes all arguments passed to it.
- ******************************************************************************/
-
+//
+// Created by knrd on 02.04.25.
+//
 #include <stdio.h>
+#include <unistd.h>
 
-#define UNUSED(x) (void)(x);
+/*
+ * echoAll.c
+ * Echoes all command line arguments
+ * and prints the process ID and parent process ID.
+ */
+int main(int argc, char *argv[]) {
 
-int main(int argc, char **argv) {
-  UNUSED(argc);
-  UNUSED(argv);
-  fprintf(stdout, "Geben Sie hier die Argumente aus.\n");
+    fprintf(stdout,"Programmname: %s\n", argv[0]);
 
-  fprintf(stdout, "Nun ein neuer Abschnitt, der die pid und ppid ausgibt.\n");
+    for (int i = 1; i < argc ; i++) {
+        fprintf(stdout,"Argument %d: %s\n", i, argv[i]);
+        sleep(1);
+    }
 
-  return 0;
+    fprintf(stdout,"PID: %d \nPPID: %d \n", getpid(), getppid());
+    return 0;
 }
