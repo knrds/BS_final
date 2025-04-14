@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
                     process_count = (int) strtol(optarg, &endptr1, 10); // Convert string to long
                     if (*endptr1 != '\0' || process_count <= 0) {
                         fprintf(stderr, "Invalid process count: %s\n", optarg);
-                        return EXIT_FAILURE;
+                        return OSMP_FAILURE;
                     }
                 }
                 break;
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
                     verbosity_level = (int) strtol(optarg, &endptr, 10);
                     if (*endptr != '\0' || verbosity_level < 1 || verbosity_level > 3) {
                         fprintf(stderr, "Invalid Log-Level: %s\n", optarg);
-                        return EXIT_FAILURE;
+                        return OSMP_FAILURE
                     }
                 }
                 break;
@@ -85,14 +85,14 @@ int main(int argc, char *argv[]) {
             // Invalid option - Usage message
             default:
                 fprintf(stderr, "Usage: %s [-p process_count] [-l logfile_path] [-v verbosity_level] [-e executable_path]\n", argv[0]);
-                exit(EXIT_FAILURE);
+                return OSMP_FAILURE
         }
     }
 
     // Check if the number of processes to start and executable path are provided
     if (process_count <= 0 || executable_path == NULL) {
         fprintf(stderr, "Error: Number of processes to start and executable path must be provided.\n");
-        return EXIT_FAILURE;
+        return OSMP_FAILURE
     }
 
     // Clear log file if it exists
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
             // Only reachable if execvp fails
             perror("Exec failed");
             log_event_level("Fork failed", 3);
-            exit(EXIT_FAILURE);
+            return OSMP_FAILURE
         } else{
             // Parent process
             snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d", i + 1, pid);
@@ -151,5 +151,5 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    return EXIT_SUCCESS;
+    return OSMP_SUCCESS;
 }
