@@ -34,19 +34,57 @@ int OSMP_GetSucess(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
-  UNUSED(argc);
-  UNUSED(argv);
+
+    if (OSMP_FAILURE == OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_Init() called")) {
+        return OSMP_FAILURE;
+    }
+
+    if (argc == NULL || argv == NULL) {
+        return OSMP_FAILURE;
+    }
+
+
 
   // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+  return OSMP_SUCCESS;
 }
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
-  UNUSED(datatype);
-  UNUSED(size);
-
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    switch (datatype) {
+        case OSMP_SHORT:
+            *size = sizeof(short);
+            break;
+        case OSMP_INT:
+            *size = sizeof(int);
+            break;
+        case OSMP_LONG:
+            *size = sizeof(long);
+            break;
+        case OSMP_UNSIGNED_CHAR:
+            *size = sizeof(unsigned char);
+            break;
+        case OSMP_UNSIGNED:
+            *size = sizeof(unsigned);
+            break;
+        case OSMP_UNSIGNED_SHORT:
+            *size = sizeof(unsigned short);
+            break;
+        case OSMP_UNSIGNED_LONG:
+            *size = sizeof(unsigned long);
+            break;
+        case OSMP_FLOAT:
+            *size = sizeof(float);
+            break;
+        case OSMP_DOUBLE:
+            *size = sizeof(double);
+            break;
+        case OSMP_BYTE:
+            *size = sizeof(char);
+            break;
+        default:
+            return OSMP_FAILURE;
+    }
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Size(int *size) {
