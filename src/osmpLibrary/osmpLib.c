@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "osmpLib.h"
+#include <stdlib.h>
 
 int OSMP_GetMaxPayloadLength(void) {
   // TODO: Implementieren Sie hier die Funktionalität der Funktion.
@@ -39,7 +40,7 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-    if (argc == NULL || argv == NULL) {
+    if (argc == 0 || argv == NULL) {
         return OSMP_FAILURE;
     }
 
