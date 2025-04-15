@@ -12,10 +12,47 @@
 #include "../osmpLibrary/OSMP.h"
 #include "../osmpLibrary/osmpLib.h"
 #include <bits/getopt_core.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <memory.h>
+
+#define SHM_NAME "/osmp_shm" // Name of the shared memory object
+#define SHM_SIZE 4096 // Size of the shared memory object
 
 char *logfile_path = NULL; // Path to the log file
 int verbosity_level = 1;  // Standard: Level 1
 char buffer[256]; // Buffer for log messages
+
+void *shared_memory_ptr = NULL; // Pointer to the shared memory object
+
+int setup_shared_memory(){
+    int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666); // Create shared memory object
+
+    // Check if the shared memory object was created successfully. Return EXIT_FAILURE if it fails.
+    if (fd == -1) {
+        perror("Error creating shared memory");
+        return EXIT_FAILURE;
+    }
+
+    // Set the size of the shared memory object. Return EXIT_FAILURE if it fails.
+    if (ftruncate(fd, SHM_SIZE) == -1) { // Set the size of the shared memory object
+        perror("Error setting size of shared memory");
+        close(fd);
+        return EXIT_FAILURE;
+    }
+
+    // Map the shared memory object to the process's address space. Return EXIT_FAILURE if it fails.
+    shared_memory_ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0); // Map the shared memory object to the process's address space
+    if (shared_memory_ptr == MAP_FAILED) { // Check if the mapping was successful
+        perror("Error mapping shared memory");
+        close(fd);
+        return EXIT_FAILURE;
+    }
+
+    memset(shared_memory_ptr, 0, SHM_SIZE); // Initialize the shared memory object to zero
+
+    return 0;
+}
 
 void log_event_level (const char *message, int level) {
     if (level > verbosity_level) return;
@@ -45,11 +82,17 @@ void log_event_level (const char *message, int level) {
 }
 
 
+
 int main(int argc, char *argv[]) {
     int opt; // Variable for command line options
     int process_count = -1; // Number of processes to start
     char *executable_path = NULL; // Path to the executable
     char **exec_args = NULL; // Arguments for the executable
+
+    if (setup_shared_memory() != 0) {
+        fprintf(stderr, "Shared Memory Setup fehlgeschlagen!\n");
+        return EXIT_FAILURE;
+    }
 
     // Parse command line options
     while((opt = getopt(argc, argv, "p:l:v:e:")) != -1) {

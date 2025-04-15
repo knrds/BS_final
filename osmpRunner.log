@@ -1,11 +1,11 @@
-[18:18:52] PID 34456: Starting 5 instances of ./build/echoAll
-[18:18:52] PID 34456: Started instance 1 with PID 34457
-[18:18:52] PID 34456: Started instance 2 with PID 34458
-[18:18:52] PID 34456: Started instance 3 with PID 34459
-[18:18:52] PID 34456: Started instance 4 with PID 34460
-[18:18:52] PID 34456: Started instance 5 with PID 34461
-[18:18:52] PID 34456: Child process 34457 exited with code 0
-[18:18:52] PID 34456: Child process 34458 exited with code 0
-[18:18:52] PID 34456: Child process 34459 exited with code 0
-[18:18:52] PID 34456: Child process 34460 exited with code 0
-[18:18:52] PID 34456: Child process 34461 exited with code 0
+[18:55:58] PID 35316: Starting 5 instances of ./build/echoAll
+[18:55:58] PID 35316: Started instance 1 with PID 35317
+[18:55:58] PID 35316: Started instance 2 with PID 35318
+[18:55:58] PID 35316: Started instance 3 with PID 35319
+[18:55:58] PID 35316: Started instance 4 with PID 35320
+[18:55:58] PID 35316: Started instance 5 with PID 35321
+[18:55:58] PID 35316: Child process 35317 exited with code 0
+[18:55:58] PID 35316: Child process 35318 exited with code 0
+[18:55:58] PID 35316: Child process 35319 exited with code 0
+[18:55:58] PID 35316: Child process 35320 exited with code 0
+[18:55:58] PID 35316: Child process 35321 exited with code 0
