@@ -7,7 +7,15 @@
  ******************************************************************************/
 
 #include "osmpLib.h"
-#include <stdlib.h>
+#include "OSMP.h"
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <string.h>
+#include <stdio.h>
+
+static osmp_shared_info_t *osmp_shared = NULL;
+static int osmp_rank = -1;
 
 int OSMP_GetMaxPayloadLength(void) {
   // TODO: Implementieren Sie hier die Funktionalität der Funktion.
@@ -35,20 +43,46 @@ int OSMP_GetSucess(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
+    int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
 
-    if (OSMP_FAILURE == OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_Init() called")) {
+    // Check if the shared memory object was created successfully. Return OSMP_FAILURE if it fails.
+    if (shm_fd == -1) {
+        perror("Error opening shared memory");
         return OSMP_FAILURE;
     }
 
-    if (argc == NULL || argv == NULL) {
+    // Set the size of the shared memory object. Return OSMP_FAILURE if it fails.
+    void *ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    if (ptr == MAP_FAILED) {
+        perror("Error mapping shared memory");
+        close(shm_fd);
         return OSMP_FAILURE;
     }
 
+    // Initialize the shared memory object to zero
+    osmp_shared = (osmp_shared_info_t *)ptr;
 
+    pid_t my_pid = getpid();
+    int found = 0;
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_SUCCESS;
+    // Check if the current process ID is in the shared memory
+    for (int i = 0; i < OSMP_MAX_PROCESSES; i++) {
+        if (osmp_shared->pids[i] == my_pid) {
+            osmp_rank = i;
+            found = 1;
+            break;
+        }
+    }
+
+    // If the process ID is not found, print an error message and return failure
+    if (!found) {
+        fprintf(stderr, "OSMP_Init: PID %d not found in shared memory\n", my_pid);
+        return OSMP_FAILURE;
+    }
+
+    return OSMP_SUCCESS;
 }
+
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
     switch (datatype) {

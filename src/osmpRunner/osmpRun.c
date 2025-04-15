@@ -16,9 +16,6 @@
 #include <fcntl.h>
 #include <memory.h>
 
-#define SHM_NAME "/osmp_shm" // Name of the shared memory object
-#define SHM_SIZE sizeof(osmp_shared_info_t) // Size of the shared memory object
-
 char *logfile_path = NULL; // Path to the log file
 int verbosity_level = 1;  // Standard: Level 1
 char buffer[256]; // Buffer for log messages
