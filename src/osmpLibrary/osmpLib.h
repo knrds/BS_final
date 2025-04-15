@@ -8,6 +8,13 @@
 
 #ifndef __OSMP_LIB_H__
 #define __OSMP_LIB_H__
+#define OSMP_MAX_PROCESSES 256
+
+typedef struct {
+    int process_count; // Anzahl der Prozesse
+    pid_t pids[OSMP_MAX_PROCESSES]; // Prozess-ID
+    int is_active[OSMP_MAX_PROCESSES]; // Aktivitätsstatus des Prozesses
+    } osmp_shared_info_t;
 
 #include "OSMP.h"
 

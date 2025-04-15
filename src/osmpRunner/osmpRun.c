@@ -17,13 +17,13 @@
 #include <memory.h>
 
 #define SHM_NAME "/osmp_shm" // Name of the shared memory object
-#define SHM_SIZE 4096 // Size of the shared memory object
+#define SHM_SIZE sizeof(osmp_shared_info_t) // Size of the shared memory object
 
 char *logfile_path = NULL; // Path to the log file
 int verbosity_level = 1;  // Standard: Level 1
 char buffer[256]; // Buffer for log messages
 
-void *shared_memory_ptr = NULL; // Pointer to the shared memory object
+osmp_shared_info_t *osmp_shared = NULL; // globaler Zeiger
 
 int setup_shared_memory(){
     int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666); // Create shared memory object
@@ -42,14 +42,15 @@ int setup_shared_memory(){
     }
 
     // Map the shared memory object to the process's address space. Return EXIT_FAILURE if it fails.
-    shared_memory_ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0); // Map the shared memory object to the process's address space
-    if (shared_memory_ptr == MAP_FAILED) { // Check if the mapping was successful
+    void *ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0); // Map the shared memory object to the process's address space
+    if (ptr == MAP_FAILED) { // Check if the mapping was successful
         perror("Error mapping shared memory");
         close(fd);
         return EXIT_FAILURE;
     }
 
-    memset(shared_memory_ptr, 0, SHM_SIZE); // Initialize the shared memory object to zero
+    osmp_shared = (osmp_shared_info_t *)ptr;
+    memset(osmp_shared, 0, SHM_SIZE); // Initialize the shared memory object to zero
 
     return 0;
 }
@@ -140,6 +141,8 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    osmp_shared->process_count = process_count;
+
     // Clear log file if it exists
     if (logfile_path) fclose(fopen(logfile_path, "w"));
 
@@ -165,9 +168,14 @@ int main(int argc, char *argv[]) {
             // Only reachable if execvp fails
             perror("Exec failed");
             log_event_level("Fork failed", 3);
-            EXIT_FAILURE;
+            exit(EXIT_FAILURE);
         } else{
             // Parent process
+            // Store the child process ID in the shared memory
+            if (i < OSMP_MAX_PROCESSES) {
+                osmp_shared->pids[i] = pid;
+                osmp_shared->is_active[i] = 1;
+            }
             snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d", i + 1, pid);
             pid_children[i] = pid;
             log_event_level(buffer, 1);
