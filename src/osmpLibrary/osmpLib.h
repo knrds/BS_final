@@ -14,11 +14,17 @@
 #define SHM_SIZE sizeof(osmp_shared_info_t) // Size of the shared memory object
 
 
+#define OSMP_MAX_PROCESSES 128
+
 typedef struct {
-    int process_count; // Anzahl der Prozesse
-    pid_t pids[OSMP_MAX_PROCESSES]; // Prozess-ID
-    int is_active[OSMP_MAX_PROCESSES]; // Aktivitätsstatus des Prozesses
-    } osmp_shared_info_t;
+    int process_count;
+
+    pid_t pid_map[OSMP_MAX_PROCESSES];  // Index = Rank, Wert = PID (oder -1)
+
+    int free_ranks[OSMP_MAX_PROCESSES]; // Queue für freie Ranks
+    int front;  // Index des nächsten freien Ranks
+    int rear;   // Index zum Einfügen eines neuen freien Ranks
+} osmp_shared_info_t;
 
 #include "OSMP.h"
 

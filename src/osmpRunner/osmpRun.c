@@ -49,6 +49,16 @@ int setup_shared_memory(){
     osmp_shared = (osmp_shared_info_t *)ptr;
     memset(osmp_shared, 0, SHM_SIZE); // Initialize the shared memory object to zero
 
+    // Initialize the shared memory structure
+    for (int i = 0; i < OSMP_MAX_PROCESSES; i++) {
+        osmp_shared->free_ranks[i] = i;
+        osmp_shared->pid_map[i] = -1; // Kein PID zugewiesen
+    }
+    osmp_shared->front = 0;
+    osmp_shared->rear = OSMP_MAX_PROCESSES;
+
+    close(fd); // Close the file descriptor
+
     return 0;
 }
 
@@ -150,6 +160,14 @@ int main(int argc, char *argv[]) {
     pid_t pid_children[process_count]; // Array to store child process IDs
 
     for (int i = 0; i < process_count; i++) {
+        // Check if there are free ranks available
+        if (osmp_shared->front == osmp_shared->rear) {
+            fprintf(stderr, "No free ranks available\n");
+            exit(EXIT_FAILURE);
+        }
+        int rank = osmp_shared->free_ranks[osmp_shared->front++];
+        osmp_shared->front %= OSMP_MAX_PROCESSES;
+
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -164,15 +182,12 @@ int main(int argc, char *argv[]) {
 
             // Only reachable if execvp fails
             perror("Exec failed");
-            log_event_level("Fork failed", 3);
+            log_event_level("Exec failed", 3);
             exit(EXIT_FAILURE);
         } else{
             // Parent process
             // Store the child process ID in the shared memory
-            if (i < OSMP_MAX_PROCESSES) {
-                osmp_shared->pids[i] = pid;
-                osmp_shared->is_active[i] = 1;
-            }
+            osmp_shared->pid_map[rank] = pid;
             snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d", i + 1, pid);
             pid_children[i] = pid;
             log_event_level(buffer, 1);
@@ -191,6 +206,22 @@ int main(int argc, char *argv[]) {
             continue;
         } else{
             if (WIFEXITED(status)) { // reads bits of status - clean exit if WIFEXITED is true
+                // Finde den Rank des beendeten Prozesses anhand der PID
+                int freed_rank = -1;
+                for (int r = 0; r < OSMP_MAX_PROCESSES; r++) {
+                    if (osmp_shared->pid_map[r] == pid) {
+                        freed_rank = r;
+                        break;
+                    }
+                }
+                if (freed_rank != -1) {
+                    osmp_shared->pid_map[freed_rank] = -1;
+                    osmp_shared->free_ranks[osmp_shared->rear++] = freed_rank;
+                    osmp_shared->rear %= OSMP_MAX_PROCESSES;
+                } else{
+                    snprintf(buffer, sizeof(buffer), "PID %d not found in pid_map", pid);
+                    log_event_level(buffer, 3);
+                }
                 int exit_status = WEXITSTATUS(status);
                 snprintf(buffer, sizeof(buffer), "Child process %d exited with code %d", pid, exit_status);
                 log_event_level(buffer, 1);

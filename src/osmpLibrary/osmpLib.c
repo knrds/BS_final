@@ -123,17 +123,30 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
-  UNUSED(size);
+    if (osmp_shared == NULL) {
+        fprintf(stderr, "OSMP_Size: Shared memory not initialized\n");
+        return OSMP_FAILURE;
+    }
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    *size = osmp_shared->process_count;
+
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Rank(int *rank) {
-  UNUSED(rank);
+    if (osmp_shared == NULL) {
+        fprintf(stderr, "OSMP_Rank: Shared memory not initialized\n");
+        return OSMP_FAILURE;
+    }
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    if (osmp_rank == -1) {
+        fprintf(stderr, "OSMP_Rank: Rank not found\n");
+        return OSMP_FAILURE;
+    }
+
+    *rank = osmp_rank;
+
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
