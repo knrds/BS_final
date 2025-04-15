@@ -43,45 +43,47 @@ int OSMP_GetSucess(void) {
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
-    int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
+    UNUSED(argc);
+    UNUSED(argv);
 
-    // Check if the shared memory object was created successfully. Return OSMP_FAILURE if it fails.
+    // Erstelle den Shared Memory
+    int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
     if (shm_fd == -1) {
-        perror("Error opening shared memory");
+        perror("shm_open failed");
         return OSMP_FAILURE;
     }
 
-    // Set the size of the shared memory object. Return OSMP_FAILURE if it fails.
+    // Setze die Größe des Shared Memory
     void *ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (ptr == MAP_FAILED) {
-        perror("Error mapping shared memory");
+        perror("mmap failed");
         close(shm_fd);
         return OSMP_FAILURE;
     }
 
-    // Initialize the shared memory object to zero
+    // Initialisiere den Shared Memory
     osmp_shared = (osmp_shared_info_t *)ptr;
 
+    // Setze die Anzahl der Prozesse auf 0
     pid_t my_pid = getpid();
-    int found = 0;
+    osmp_rank = -1;
 
-    // Check if the current process ID is in the shared memory
+    // Durchsuche pid_map auf meine PID
     for (int i = 0; i < OSMP_MAX_PROCESSES; i++) {
-        if (osmp_shared->pids[i] == my_pid) {
+        if (osmp_shared->pid_map[i] == my_pid) {
             osmp_rank = i;
-            found = 1;
             break;
         }
     }
 
-    // If the process ID is not found, print an error message and return failure
-    if (!found) {
-        fprintf(stderr, "OSMP_Init: PID %d not found in shared memory\n", my_pid);
+    if (osmp_rank == -1) {
+        fprintf(stderr, "OSMP_Init: PID %d not found in pid_map\n", my_pid);
         return OSMP_FAILURE;
     }
 
     return OSMP_SUCCESS;
 }
+
 
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
@@ -123,31 +125,36 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
 }
 
 int OSMP_Size(int *size) {
-    if (osmp_shared == NULL) {
-        fprintf(stderr, "OSMP_Size: Shared memory not initialized\n");
+    // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
+    if (!osmp_shared || !size) {
+        fprintf(stderr, "OSMP_Size: Invalid parameters\n");
         return OSMP_FAILURE;
     }
 
+    // Überprüfen Sie, ob der Prozess initialisiert ist
     *size = osmp_shared->process_count;
-
     return OSMP_SUCCESS;
 }
+
 
 int OSMP_Rank(int *rank) {
-    if (osmp_shared == NULL) {
-        fprintf(stderr, "OSMP_Rank: Shared memory not initialized\n");
+    // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
+    if (!osmp_shared || !rank) {
+        fprintf(stderr, "OSMP_Rank: Invalid parameters\n");
         return OSMP_FAILURE;
     }
 
+    // Überprüfen Sie, ob der Prozess initialisiert ist
     if (osmp_rank == -1) {
-        fprintf(stderr, "OSMP_Rank: Rank not found\n");
+        fprintf(stderr, "OSMP_Rank: Not initialized or rank unknown\n");
         return OSMP_FAILURE;
     }
 
+    // Geben Sie den Rang des Prozesses zurück
     *rank = osmp_rank;
-
     return OSMP_SUCCESS;
 }
+
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
   UNUSED(buf);
