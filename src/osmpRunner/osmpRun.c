@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "osmpRun.h"
+#include "../osmpLibrary/OSMP.h"
+#include "../osmpLibrary/osmpLib.h"
 #include <bits/getopt_core.h>
 
 char *logfile_path = NULL; // Path to the log file
