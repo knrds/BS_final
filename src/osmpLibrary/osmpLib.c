@@ -40,7 +40,7 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-    if (argc == 0 || argv == NULL) {
+    if (argc == NULL || argv == NULL) {
         return OSMP_FAILURE;
     }
 
