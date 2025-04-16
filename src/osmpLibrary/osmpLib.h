@@ -19,6 +19,7 @@
 typedef struct {
     int process_count;
 
+    char logfile_path[256];    // ← stattdessen: Pfad zur Logdatei
     int log_fd;                // ← stattdessen: File Descriptor für Logging
     int verbosity_level;
 

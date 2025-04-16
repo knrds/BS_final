@@ -29,42 +29,49 @@ osmp_shared_info_t *osmp_shared = NULL; // globaler Zeiger
 int setup_shared_memory(void){
     int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666); // Create shared memory object
 
-    // Check if the shared memory object was created successfully. Return EXIT_FAILURE if it fails.
     if (fd == -1) {
         perror("Error creating shared memory");
         return EXIT_FAILURE;
     }
 
-    // Set the size of the shared memory object. Return EXIT_FAILURE if it fails.
-    if (ftruncate(fd, SHM_SIZE) == -1) { // Set the size of the shared memory object
+    if (ftruncate(fd, SHM_SIZE) == -1) {
         perror("Error setting size of shared memory");
         close(fd);
         return EXIT_FAILURE;
     }
 
-    // Map the shared memory object to the process's address space. Return EXIT_FAILURE if it fails.
-    void *ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0); // Map the shared memory object to the process's address space
-    if (ptr == MAP_FAILED) { // Check if the mapping was successful
+    void *ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (ptr == MAP_FAILED) {
         perror("Error mapping shared memory");
         close(fd);
         return EXIT_FAILURE;
     }
 
     osmp_shared = (osmp_shared_info_t *)ptr;
-    memset(osmp_shared, 0, SHM_SIZE); // Initialize the shared memory object to zero
+    memset(osmp_shared, 0, SHM_SIZE); // Zero init
 
-    // Initialize the shared memory structure
+    // Init process map and free ranks queue
     for (int i = 0; i < OSMP_MAX_PROCESSES; i++) {
         osmp_shared->free_ranks[i] = i;
-        osmp_shared->pid_map[i] = -1; // Kein PID zugewiesen
+        osmp_shared->pid_map[i] = -1;
     }
     osmp_shared->front = 0;
     osmp_shared->rear = OSMP_MAX_PROCESSES;
 
-    close(fd); // Close the file descriptor
+    // 🟡 Neu: Logfile-Pfad und Verbosity speichern
+    if (logfile_path != NULL) {
+        strncpy(osmp_shared->logfile_path, logfile_path, sizeof(osmp_shared->logfile_path) - 1);
+        osmp_shared->logfile_path[sizeof(osmp_shared->logfile_path) - 1] = '\0'; // Safety null-terminator
+    } else {
+        osmp_shared->logfile_path[0] = '\0'; // leer lassen
+    }
 
+    osmp_shared->verbosity_level = verbosity_level;
+
+    close(fd); // FD kann geschlossen werden
     return 0;
 }
+
 
 void log_event_level (const char *message, int level) {
     if (level > verbosity_level) return;
@@ -157,6 +164,14 @@ int main(int argc, char *argv[]) {
     // Clear log file if it exists
     if (logfile_path) fclose(fopen(logfile_path, "w"));
 
+    int log_fd = open(logfile_path, O_WRONLY | O_APPEND | O_CREAT, 0666);
+    if (log_fd == -1) {
+        perror("Could not open log file");
+        return EXIT_FAILURE;
+    }
+    osmp_shared->log_fd = log_fd;
+
+
     // start logging
     snprintf(buffer, sizeof(buffer), "Starting %d instances of %s", process_count, executable_path);
     log_event_level(buffer, 1);
@@ -236,5 +251,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    if (log_fd != -1) {
+        close(log_fd);
+    }
     return EXIT_SUCCESS;
 }
