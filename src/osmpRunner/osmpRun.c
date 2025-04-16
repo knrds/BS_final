@@ -1,20 +1,24 @@
 //
 // Created by knrd on 02.04.25.
 //
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <wait.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <unistd.h>     // ✅ für ftruncate, fork, getopt, etc.
+#include <string.h>     // ✅ für memset, snprintf
+#include <fcntl.h>      // ✅ für O_CREAT, O_RDWR, shm_open
+#include <sys/mman.h>   // ✅ für mmap
+#include <sys/stat.h>   // ✅ für Mode-Typen (0666 etc.)
+#include <sys/types.h>  // ✅ für pid_t
+#include <sys/wait.h>   // ✅ für waitpid
+#include <time.h>       // ✅ für time()
+#include <getopt.h>     // ✅ optional (eigentlich reicht <unistd.h> für getopt)
+
 #include "osmpRun.h"
 #include "../osmpLibrary/OSMP.h"
 #include "../osmpLibrary/osmpLib.h"
-#include <bits/getopt_core.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <memory.h>
+
+
 
 char *logfile_path = NULL; // Path to the log file
 int verbosity_level = 1;  // Standard: Level 1
@@ -22,7 +26,7 @@ char buffer[256]; // Buffer for log messages
 
 osmp_shared_info_t *osmp_shared = NULL; // globaler Zeiger
 
-int setup_shared_memory(){
+int setup_shared_memory(void){
     int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666); // Create shared memory object
 
     // Check if the shared memory object was created successfully. Return EXIT_FAILURE if it fails.

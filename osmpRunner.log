@@ -1,11 +1,41 @@
-[18:55:58] PID 35316: Starting 5 instances of ./build/echoAll
-[18:55:58] PID 35316: Started instance 1 with PID 35317
-[18:55:58] PID 35316: Started instance 2 with PID 35318
-[18:55:58] PID 35316: Started instance 3 with PID 35319
-[18:55:58] PID 35316: Started instance 4 with PID 35320
-[18:55:58] PID 35316: Started instance 5 with PID 35321
-[18:55:58] PID 35316: Child process 35317 exited with code 0
-[18:55:58] PID 35316: Child process 35318 exited with code 0
-[18:55:58] PID 35316: Child process 35319 exited with code 0
-[18:55:58] PID 35316: Child process 35320 exited with code 0
-[18:55:58] PID 35316: Child process 35321 exited with code 0
+[11:47:07] PID 8521: Starting 20 instances of ./build/echoall
+[11:47:07] PID 8521: Started instance 1 with PID 8522
+[11:47:07] PID 8521: Started instance 2 with PID 8523
+[11:47:07] PID 8521: Started instance 3 with PID 8524
+[11:47:07] PID 8521: Started instance 4 with PID 8525
+[11:47:07] PID 8521: Started instance 5 with PID 8526
+[11:47:07] PID 8521: Started instance 6 with PID 8527
+[11:47:07] PID 8521: Started instance 7 with PID 8528
+[11:47:07] PID 8521: Started instance 8 with PID 8529
+[11:47:07] PID 8521: Started instance 9 with PID 8530
+[11:47:07] PID 8521: Started instance 10 with PID 8531
+[11:47:07] PID 8521: Started instance 11 with PID 8532
+[11:47:07] PID 8521: Started instance 12 with PID 8533
+[11:47:07] PID 8521: Started instance 13 with PID 8534
+[11:47:07] PID 8521: Started instance 14 with PID 8535
+[11:47:07] PID 8521: Started instance 15 with PID 8536
+[11:47:07] PID 8521: Started instance 16 with PID 8537
+[11:47:07] PID 8521: Started instance 17 with PID 8538
+[11:47:07] PID 8521: Started instance 18 with PID 8539
+[11:47:07] PID 8521: Started instance 19 with PID 8540
+[11:47:07] PID 8521: Started instance 20 with PID 8541
+[11:47:07] PID 8521: Child process 8522 exited with code 0
+[11:47:07] PID 8521: Child process 8523 exited with code 0
+[11:47:07] PID 8521: Child process 8524 exited with code 0
+[11:47:07] PID 8521: Child process 8525 exited with code 0
+[11:47:07] PID 8521: Child process 8526 exited with code 0
+[11:47:07] PID 8521: Child process 8527 exited with code 0
+[11:47:07] PID 8521: Child process 8528 exited with code 0
+[11:47:07] PID 8521: Child process 8529 exited with code 0
+[11:47:07] PID 8521: Child process 8530 exited with code 0
+[11:47:07] PID 8521: Child process 8531 exited with code 0
+[11:47:07] PID 8521: Child process 8532 exited with code 0
+[11:47:07] PID 8521: Child process 8533 exited with code 0
+[11:47:07] PID 8521: Child process 8534 exited with code 0
+[11:47:07] PID 8521: Child process 8535 exited with code 0
+[11:47:07] PID 8521: Child process 8536 exited with code 0
+[11:47:07] PID 8521: Child process 8537 exited with code 0
+[11:47:07] PID 8521: Child process 8538 exited with code 0
+[11:47:07] PID 8521: Child process 8539 exited with code 0
+[11:47:07] PID 8521: Child process 8540 exited with code 0
+[11:47:07] PID 8521: Child process 8541 exited with code 0

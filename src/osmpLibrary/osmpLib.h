@@ -9,12 +9,12 @@
 #ifndef __OSMP_LIB_H__
 #define __OSMP_LIB_H__
 
+#include <sys/types.h>
+
+
 #define OSMP_MAX_PROCESSES 256
 #define SHM_NAME "/osmp_shm"
 #define SHM_SIZE sizeof(osmp_shared_info_t) // Size of the shared memory object
-
-
-#define OSMP_MAX_PROCESSES 128
 
 typedef struct {
     int process_count;
