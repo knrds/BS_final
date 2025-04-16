@@ -75,35 +75,6 @@ int setup_shared_memory(void){
 }
 
 
-void log_event_level (const char *message, int level) {
-    if (level > verbosity_level) return;
-    // Check if the log file path is set
-    if (logfile_path == NULL) {
-        fprintf(stderr, "Log file path is not set.\n");
-        return;
-    }
-    // Open the log file in append mode
-    FILE *log_file = fopen(logfile_path, "a");
-    if (log_file == NULL) {
-        perror("Error opening log file");
-        return;
-    }
-
-    // Write the message to the log file with a timestamp and PID
-    time_t now = time(NULL);
-    fprintf(log_file, "[%02d:%02d:%02d] PID %d: %s\n",
-            localtime(&now)->tm_hour,
-            localtime(&now)->tm_min,
-            localtime(&now)->tm_sec,
-            getpid(),
-            message);
-
-    // Close the log file
-    fclose(log_file);
-}
-
-
-
 int main(int argc, char *argv[]) {
     int opt; // Variable for command line options
     int process_count = -1; // Number of processes to start
