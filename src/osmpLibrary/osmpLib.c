@@ -18,28 +18,28 @@ static osmp_shared_info_t *osmp_shared = NULL;
 static int osmp_rank = -1;
 
 int OSMP_GetMaxPayloadLength(void) {
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_MAX_PAYLOAD_LENGTH;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_MAX_PAYLOAD_LENGTH;
 }
 
 int OSMP_GetMaxSlots(void) {
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_MAX_SLOTS;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_MAX_SLOTS;
 }
 
 int OSMP_GetMaxMessagesProc(void) {
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_MAX_MESSAGES_PROC;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_MAX_MESSAGES_PROC;
 }
 
 int OSMP_GetFailure(void) {
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_GetSucess(void) {
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_SUCCESS;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Init(const int *argc, char ***argv) {
@@ -157,110 +157,122 @@ int OSMP_Rank(int *rank) {
 
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
-  UNUSED(buf);
-  UNUSED(count);
-  UNUSED(datatype);
-  UNUSED(dest);
+    UNUSED(buf);
+    UNUSED(count);
+    UNUSED(datatype);
+    UNUSED(dest);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
               int *len) {
-  UNUSED(buf);
-  UNUSED(count);
-  UNUSED(datatype);
-  UNUSED(source);
-  UNUSED(len);
+    UNUSED(buf);
+    UNUSED(count);
+    UNUSED(datatype);
+    UNUSED(source);
+    UNUSED(len);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_Finalize(void) {
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    if(osmp_shared == NULL || osmp_rank == -1) {
+        fprintf(stderr, "OSMP_Finalize: Shared memory not initialized\n");
+        return OSMP_FAILURE;
+    }
+
+    osmp_shared->pid_map[osmp_rank] = -1; // Setze den eigenen PID-Eintrag auf -1
+    osmp_shared->free_ranks[osmp_shared->rear++] = osmp_rank; // Füge den Rang zu den freien Rängen hinzu
+    osmp_shared->rear %= OSMP_MAX_PROCESSES; // Zirkuläre Queue
+
+    //TODO: LOGGING durch OSMP_LOG
+    fprintf(stderr, "OSMP_Finalize: Process %d finalized and released\n", osmp_rank);
+    osmp_rank = -1; // Setze den Rang auf -1, um anzuzeigen, dass der Prozess nicht mehr aktiv ist
+
+    return OSMP_GetSucess();
 }
 
 int OSMP_Barrier(void) {
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
                 void *recvbuf, int recvcount, OSMP_Datatype recvtype,
                 int root) {
-  UNUSED(sendbuf);
-  UNUSED(sendcount);
-  UNUSED(sendtype);
-  UNUSED(recvbuf);
-  UNUSED(recvcount);
-  UNUSED(recvtype);
-  UNUSED(root);
+    UNUSED(sendbuf);
+    UNUSED(sendcount);
+    UNUSED(sendtype);
+    UNUSED(recvbuf);
+    UNUSED(recvcount);
+    UNUSED(recvtype);
+    UNUSED(root);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest,
                OSMP_Request request) {
-  UNUSED(buf);
-  UNUSED(count);
-  UNUSED(datatype);
-  UNUSED(dest);
-  UNUSED(request);
+    UNUSED(buf);
+    UNUSED(count);
+    UNUSED(datatype);
+    UNUSED(dest);
+    UNUSED(request);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source,
                int *len, OSMP_Request request) {
-  UNUSED(buf);
-  UNUSED(count);
-  UNUSED(datatype);
-  UNUSED(source);
-  UNUSED(len);
-  UNUSED(request);
+    UNUSED(buf);
+    UNUSED(count);
+    UNUSED(datatype);
+    UNUSED(source);
+    UNUSED(len);
+    UNUSED(request);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_Test(OSMP_Request request, int *flag) {
-  UNUSED(request);
-  UNUSED(flag);
+    UNUSED(request);
+    UNUSED(flag);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_Wait(OSMP_Request request) {
-  UNUSED(request);
+    UNUSED(request);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_CreateRequest(OSMP_Request *request) {
-  UNUSED(request);
+    UNUSED(request);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
-  UNUSED(request);
+    UNUSED(request);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
 
 int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
-  UNUSED(verbosity);
-  UNUSED(message);
+    UNUSED(verbosity);
+    UNUSED(message);
 
-  // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-  return OSMP_FAILURE;
+    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    return OSMP_FAILURE;
 }
