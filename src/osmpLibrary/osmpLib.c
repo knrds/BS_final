@@ -13,6 +13,7 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 
 static osmp_shared_info_t *osmp_shared = NULL;
 static int osmp_rank = -1;
@@ -270,9 +271,41 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
 }
 
 int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
-    UNUSED(verbosity);
-    UNUSED(message);
 
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+    // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
+    if (!osmp_shared || !message) {
+        fprintf(stderr, "OSMP_Log: Invalid parameters\n");
+        return OSMP_FAILURE;
+    }
+
+    // Überprüfen Sie, ob der Prozess initialisiert ist
+    if ((int)verbosity > osmp_shared->verbosity_level) {
+        return OSMP_SUCCESS; // → Logging wird nicht ausgeführt, aber kein Fehler
+    }
+
+    // Loggen Sie die Nachricht in die Logdatei
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+
+    char log_line[512];
+
+    int written = snprintf(log_line, sizeof(log_line),
+                            "[%02d:%02d:%02d] PID %d: %s\n",
+                            tm_info->tm_hour,
+                            tm_info->tm_min,
+                            tm_info->tm_sec,
+                            getpid(),
+                            message);
+
+    if (written < 0 ) {
+        fprintf(stderr, "OSMP_Log: Error writing to log file\n");
+        return OSMP_FAILURE;
+    }
+
+    if(write(osmp_shared->log_fd, log_line, strlen(log_line)) < 0) {
+        fprintf(stderr, "OSMP_Log: Error writing to log file\n");
+        return OSMP_FAILURE;
+    }
+
+    return OSMP_SUCCESS;
 }

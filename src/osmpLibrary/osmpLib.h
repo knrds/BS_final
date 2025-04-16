@@ -19,6 +19,9 @@
 typedef struct {
     int process_count;
 
+    int log_fd;                // ← stattdessen: File Descriptor für Logging
+    int verbosity_level;
+
     pid_t pid_map[OSMP_MAX_PROCESSES];  // Index = Rank, Wert = PID (oder -1)
 
     int free_ranks[OSMP_MAX_PROCESSES]; // Queue für freie Ranks

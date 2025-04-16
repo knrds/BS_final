@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // Ausgabe wie zuvor
+    // Ausgabe
     fprintf(stdout, "Programmname: %s\n", argv[0]);
     for (int i = 1; i < argc ; i++) {
         fprintf(stdout, "Argument %d: %s\n", i, argv[i]);
