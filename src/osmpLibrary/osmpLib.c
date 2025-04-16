@@ -82,6 +82,7 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
+    OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_Init() called");
     return OSMP_SUCCESS;
 }
 
@@ -189,9 +190,9 @@ int OSMP_Finalize(void) {
     osmp_shared->free_ranks[osmp_shared->rear++] = osmp_rank; // Füge den Rang zu den freien Rängen hinzu
     osmp_shared->rear %= OSMP_MAX_PROCESSES; // Zirkuläre Queue
 
-    //TODO: LOGGING durch OSMP_LOG
-    fprintf(stderr, "OSMP_Finalize: Process %d finalized and released\n", osmp_rank);
-    osmp_rank = -1; // Setze den Rang auf -1, um anzuzeigen, dass der Prozess nicht mehr aktiv ist
+    char msg[128];
+    snprintf(msg, sizeof(msg), "OSMP_Finalize: Process %d finalized and released", osmp_rank);
+    OSMP_Log(OSMP_LOG_BIB_CALL, msg);
 
     return OSMP_GetSucess();
 }
