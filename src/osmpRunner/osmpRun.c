@@ -41,6 +41,8 @@ int setup_shared_memory(void){
     }
 
     void *ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    OSMP_SetSharedMemory(ptr);
+
     if (ptr == MAP_FAILED) {
         perror("Error mapping shared memory");
         close(fd);
@@ -58,7 +60,7 @@ int setup_shared_memory(void){
     osmp_shared->front = 0;
     osmp_shared->rear = OSMP_MAX_PROCESSES;
 
-    // 🟡 Neu: Logfile-Pfad und Verbosity speichern
+    // Set the log file path and verbosity level
     if (logfile_path != NULL) {
         strncpy(osmp_shared->logfile_path, logfile_path, sizeof(osmp_shared->logfile_path) - 1);
         osmp_shared->logfile_path[sizeof(osmp_shared->logfile_path) - 1] = '\0'; // Safety null-terminator
@@ -174,7 +176,7 @@ int main(int argc, char *argv[]) {
 
     // start logging
     snprintf(buffer, sizeof(buffer), "Starting %d instances of %s", process_count, executable_path);
-    log_event_level(buffer, 1);
+    OSMP_Log(OSMP_LOG_BIB_CALL, buffer);
 
     pid_t pid_children[process_count]; // Array to store child process IDs
 
@@ -192,7 +194,7 @@ int main(int argc, char *argv[]) {
         if (pid < 0) {
             // Fork failed
             perror("Fork failed");
-            log_event_level("Fork failed", 3);
+            OSMP_Log(OSMP_LOG_FAILS, "Fork failed");
             continue;
         } else if (pid == 0) {
             // Child process
@@ -201,7 +203,7 @@ int main(int argc, char *argv[]) {
 
             // Only reachable if execvp fails
             perror("Exec failed");
-            log_event_level("Exec failed", 3);
+            OSMP_Log(OSMP_LOG_FAILS, "Exec failed");
             exit(EXIT_FAILURE);
         } else{
             // Parent process
@@ -209,7 +211,7 @@ int main(int argc, char *argv[]) {
             osmp_shared->pid_map[rank] = pid;
             snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d", i + 1, pid);
             pid_children[i] = pid;
-            log_event_level(buffer, 1);
+            OSMP_Log(OSMP_LOG_BIB_CALL, buffer);
         }
     }
 
@@ -221,7 +223,7 @@ int main(int argc, char *argv[]) {
 
         if (pid == -1) {
             perror("Error: Wait failed");
-            log_event_level("Wait failed", 3);
+            OSMP_Log(OSMP_LOG_FAILS, "Wait failed");
             continue;
         } else{
             if (WIFEXITED(status)) { // reads bits of status - clean exit if WIFEXITED is true
@@ -239,14 +241,14 @@ int main(int argc, char *argv[]) {
                     osmp_shared->rear %= OSMP_MAX_PROCESSES;
                 } else{
                     snprintf(buffer, sizeof(buffer), "PID %d not found in pid_map", pid);
-                    log_event_level(buffer, 3);
+                    OSMP_Log(OSMP_LOG_FAILS, buffer);
                 }
                 int exit_status = WEXITSTATUS(status);
                 snprintf(buffer, sizeof(buffer), "Child process %d exited with code %d", pid, exit_status);
-                log_event_level(buffer, 1);
+                OSMP_Log(OSMP_LOG_BIB_CALL, buffer);
             } else{
                 snprintf(buffer, sizeof(buffer), "Child process %d terminated abnormally", pid);
-                log_event_level(buffer, 3);
+                OSMP_Log(OSMP_LOG_FAILS, buffer);
             }
         }
     }

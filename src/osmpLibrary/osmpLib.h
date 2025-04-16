@@ -16,6 +16,8 @@
 #define SHM_NAME "/osmp_shm"
 #define SHM_SIZE sizeof(osmp_shared_info_t) // Size of the shared memory object
 
+int OSMP_SetSharedMemory(void *ptr);
+
 typedef struct {
     int process_count;
 

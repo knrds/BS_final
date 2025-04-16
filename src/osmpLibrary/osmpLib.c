@@ -86,6 +86,13 @@ int OSMP_Init(const int *argc, char ***argv) {
     return OSMP_SUCCESS;
 }
 
+int OSMP_SetSharedMemory(void *ptr) {
+    if (ptr == NULL) return OSMP_FAILURE;
+    osmp_shared = (osmp_shared_info_t *)ptr;
+    return OSMP_SUCCESS;
+}
+
+
 
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
