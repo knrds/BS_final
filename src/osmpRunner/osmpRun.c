@@ -102,7 +102,7 @@ int main(int argc, char *argv[]) {
     char **exec_args = NULL; // Arguments for the executable
 
     if (setup_shared_memory() != 0) {
-        fprintf(stderr, "Shared Memory Setup fehlgeschlagen!\n");
+        fprintf(stderr, "Shared Memory Setup failed\n");
         return EXIT_FAILURE;
     }
 

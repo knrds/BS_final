@@ -39,6 +39,8 @@ set(EXECUTABLES
         SOURCES src/osmpRunner/osmpRun.c
         NAME echoAll
         SOURCES src/osmpExecutables/echoAll.c
+        NAME echoAllBase
+        SOURCES src/osmpExecutables/echoAll_base.c
         # Neue Executables hier einfügen
         # NAME <name>
         # SOURCES <source1> <source2> ...
