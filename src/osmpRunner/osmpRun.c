@@ -50,12 +50,17 @@ int setup_shared_memory(void){
     memset(osmp_shared, 0, SHM_SIZE); // Nullinitialisierung
 
     // Initialisiere Prozessabbildung und freie Ränge-Warteschlange
+    // Queue leer starten
+    osmp_shared->front = 0;
+    osmp_shared->rear = 0;
+    osmp_shared->free_rank_count = OSMP_MAX_PROCESSES;
+
+    // Befülle Queue mit allen freien Ranks
     for (int i = 0; i < OSMP_MAX_PROCESSES; i++) {
-        osmp_shared->free_ranks[i] = i;
+        osmp_shared->free_ranks[osmp_shared->rear++] = i;
         osmp_shared->pid_map[i] = -1;
     }
-    osmp_shared->front = 0;
-    osmp_shared->rear = OSMP_MAX_PROCESSES;
+
 
     // Setze den Pfad der Logdatei und das Verbositätslevel
     if (logfile_path != NULL) {
@@ -69,7 +74,7 @@ int setup_shared_memory(void){
 
     close(fd); // Dateideskriptor kann geschlossen werden
     return 0;
-}
+    }
 
 
 int main(int argc, char *argv[]) {
@@ -77,6 +82,7 @@ int main(int argc, char *argv[]) {
     int process_count = -1; // Anzahl der zu startenden Prozesse
     char *executable_path = NULL; // Pfad zur ausführbaren Datei
     char **exec_args = NULL; // Argumente für die ausführbare Datei
+    int started_count = 0; // Zähler für gestartete Prozesse
 
     if (setup_shared_memory() != 0) {
         fprintf(stderr, "Shared Memory Setup failed\n");
@@ -148,45 +154,49 @@ int main(int argc, char *argv[]) {
     pid_t pid_children[process_count]; // Array zur Speicherung der Kinderprozess-IDs
 
     for (int i = 0; i < process_count; i++) {
-        // Überprüfe, ob freie Ränge verfügbar sind
-        if (osmp_shared->front == osmp_shared->rear) {
+        int rank;
+
+        // 🔐 Rank nur im Elternprozess vergeben – und vor dem Fork!
+        if (osmp_shared->free_rank_count == 0) {
             fprintf(stderr, "No free ranks available\n");
-            exit(EXIT_FAILURE);
+            OSMP_Log(OSMP_LOG_FAILS, "No free ranks available");
+            break;
         }
-        int rank = osmp_shared->free_ranks[osmp_shared->front++];
-        osmp_shared->front %= OSMP_MAX_PROCESSES;
+        rank = osmp_shared->free_ranks[osmp_shared->front];
+        osmp_shared->front = (osmp_shared->front + 1) % OSMP_MAX_PROCESSES;
+        osmp_shared->free_rank_count--;
 
         pid_t pid = fork();
 
         if (pid < 0) {
-            // Fork fehlgeschlagen
             perror("Fork failed");
             OSMP_Log(OSMP_LOG_FAILS, "Fork failed");
+            // Rank zurück in Queue einreihen, da Prozess nicht gestartet wurde
+            osmp_shared->front = (osmp_shared->front - 1 + OSMP_MAX_PROCESSES) % OSMP_MAX_PROCESSES;
+            osmp_shared->free_rank_count++;
             continue;
         } else if (pid == 0) {
-            // Kindprozess
-            // Führe das Programm mit den übergebenen Argumenten aus
+            // Kindprozess – führt nur exec() aus
             execvp(executable_path, exec_args);
 
-            // Nur erreichbar, wenn execvp fehlschlägt
+            // Nur erreichbar, wenn exec scheitert
             perror("Exec failed");
             OSMP_Log(OSMP_LOG_FAILS, "Exec failed");
             exit(EXIT_FAILURE);
-        } else{
-            // Elternprozess
-            // Speichere die Kinderprozess-ID im Shared Memory
+        } else {
+            // ✅ Nur hier im Elternprozess die pid_map schreiben
             osmp_shared->pid_map[rank] = pid;
-            snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d", i + 1, pid);
-            pid_children[i] = pid;
+
+            snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d (Rank %d)", i + 1, pid, rank);
+            pid_children[started_count++] = pid;
             OSMP_Log(OSMP_LOG_BIB_CALL, buffer);
         }
     }
 
     // Warte, bis alle Kindprozesse beendet sind
-    for (int i = 0; i < process_count; i++) {
+    for (int i = 0; i < started_count; i++) {
         int status;
-        pid_t pid = waitpid(pid_children[i], &status, 0); // Warte, bis der Kinderprozess beendet ist
-
+        pid_t pid = waitpid(pid_children[i], &status, 0);
         if (pid == -1) {
             perror("Error: Wait failed");
             OSMP_Log(OSMP_LOG_FAILS, "Wait failed");
@@ -205,6 +215,7 @@ int main(int argc, char *argv[]) {
                     osmp_shared->pid_map[freed_rank] = -1;
                     osmp_shared->free_ranks[osmp_shared->rear++] = freed_rank;
                     osmp_shared->rear %= OSMP_MAX_PROCESSES;
+                    osmp_shared->free_rank_count++;
                 } else{
                     snprintf(buffer, sizeof(buffer), "PID %d not found in pid_map", pid);
                     OSMP_Log(OSMP_LOG_FAILS, buffer);
