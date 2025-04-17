@@ -11,7 +11,6 @@
 
 #include <sys/types.h>
 
-#define OSMP_MAX_PROCESSES 256
 #define SHM_NAME "/osmp_shm"
 #define SHM_SIZE sizeof(osmp_shared_info_t) // Größe des Shared Memory
 
@@ -20,16 +19,10 @@ int OSMP_SetSharedMemory(void *ptr);
 typedef struct {
     int process_count;
 
-    char logfile_path[256];    // ← stattdessen: Pfad zur Logdatei
-    int log_fd;                // ← stattdessen: File Descriptor für Logging
+    char logfile_path[256];
     int verbosity_level;
 
-    pid_t pid_map[OSMP_MAX_PROCESSES];  // Index = Rank, Wert = PID (oder -1)
-
-    int free_rank_count;
-    int free_ranks[OSMP_MAX_PROCESSES]; // Queue für freie Ranks
-    int front;  // Index des nächsten freien Ranks
-    int rear;   // Index zum Einfügen eines neuen freien Ranks
+    pid_t pid_map[];
 } osmp_shared_info_t;
 
 #include "OSMP.h"

@@ -23,58 +23,54 @@ char buffer[256]; // Puffer für Log-Meldungen
 
 osmp_shared_info_t *osmp_shared = NULL; // globaler Zeiger
 
-int setup_shared_memory(void){
-    int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666); // Erstelle Shared-Memory-Objekt
+int setup_shared_memory(int process_count) {
+    size_t shm_size = sizeof(osmp_shared_info_t)
+                    + (size_t)process_count * sizeof(pid_t);
 
+    shm_unlink(SHM_NAME);
+    int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
     if (fd == -1) {
         perror("Error creating shared memory");
         return EXIT_FAILURE;
     }
 
-    if (ftruncate(fd, SHM_SIZE) == -1) {
+    if (ftruncate(fd, (off_t) shm_size) == -1) {
         perror("Error setting size of shared memory");
         close(fd);
         return EXIT_FAILURE;
     }
 
-    void *ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    OSMP_SetSharedMemory(ptr);
-
+    void *ptr = mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (ptr == MAP_FAILED) {
         perror("Error mapping shared memory");
         close(fd);
         return EXIT_FAILURE;
     }
 
+    OSMP_SetSharedMemory(ptr);
     osmp_shared = (osmp_shared_info_t *)ptr;
-    memset(osmp_shared, 0, SHM_SIZE); // Nullinitialisierung
+    memset(osmp_shared, 0, shm_size);
 
-    // Initialisiere Prozessabbildung und freie Ränge-Warteschlange
-    // Queue leer starten
-    osmp_shared->front = 0;
-    osmp_shared->rear = 0;
-    osmp_shared->free_rank_count = OSMP_MAX_PROCESSES;
+    osmp_shared->process_count = process_count;
 
-    // Befülle Queue mit allen freien Ranks
-    for (int i = 0; i < OSMP_MAX_PROCESSES; i++) {
-        osmp_shared->free_ranks[osmp_shared->rear++] = i;
+
+    for (int i = 0; i < process_count; i++) {
         osmp_shared->pid_map[i] = -1;
     }
 
-
-    // Setze den Pfad der Logdatei und das Verbositätslevel
     if (logfile_path != NULL) {
         strncpy(osmp_shared->logfile_path, logfile_path, sizeof(osmp_shared->logfile_path) - 1);
-        osmp_shared->logfile_path[sizeof(osmp_shared->logfile_path) - 1] = '\0'; // Sicherer Null-Terminator
+        osmp_shared->logfile_path[sizeof(osmp_shared->logfile_path) - 1] = '\0';
     } else {
-        osmp_shared->logfile_path[0] = '\0'; // leer lassen
+        osmp_shared->logfile_path[0] = '\0';
     }
 
     osmp_shared->verbosity_level = verbosity_level;
 
-    close(fd); // Dateideskriptor kann geschlossen werden
+    close(fd);
     return 0;
-    }
+}
+
 
 
 int main(int argc, char *argv[]) {
@@ -84,10 +80,7 @@ int main(int argc, char *argv[]) {
     char **exec_args = NULL; // Argumente für die ausführbare Datei
     int started_count = 0; // Zähler für gestartete Prozesse
 
-    if (setup_shared_memory() != 0) {
-        fprintf(stderr, "Shared Memory Setup failed\n");
-        return EXIT_FAILURE;
-    }
+
 
     // Analysiere Befehlszeilenoptionen
     while((opt = getopt(argc, argv, "p:l:v:e:")) != -1) {
@@ -135,6 +128,11 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    if (setup_shared_memory(process_count) != 0) {
+        fprintf(stderr, "Shared Memory Setup failed\n");
+        return EXIT_FAILURE;
+    }
+
     osmp_shared->process_count = process_count;
 
     // Leere Logdatei, falls vorhanden
@@ -145,7 +143,9 @@ int main(int argc, char *argv[]) {
         perror("Could not open log file");
         return EXIT_FAILURE;
     }
-    osmp_shared->log_fd = log_fd;
+    strncpy(osmp_shared->logfile_path, logfile_path, sizeof(osmp_shared->logfile_path) - 1);
+    osmp_shared->logfile_path[sizeof(osmp_shared->logfile_path) - 1] = '\0'; // Null-terminator setzen
+
 
     // Starte Logging
     snprintf(buffer, sizeof(buffer), "Starting %d instances of %s", process_count, executable_path);
@@ -154,26 +154,12 @@ int main(int argc, char *argv[]) {
     pid_t pid_children[process_count]; // Array zur Speicherung der Kinderprozess-IDs
 
     for (int i = 0; i < process_count; i++) {
-        int rank;
-
-        // 🔐 Rank nur im Elternprozess vergeben – und vor dem Fork!
-        if (osmp_shared->free_rank_count == 0) {
-            fprintf(stderr, "No free ranks available\n");
-            OSMP_Log(OSMP_LOG_FAILS, "No free ranks available");
-            break;
-        }
-        rank = osmp_shared->free_ranks[osmp_shared->front];
-        osmp_shared->front = (osmp_shared->front + 1) % OSMP_MAX_PROCESSES;
-        osmp_shared->free_rank_count--;
 
         pid_t pid = fork();
 
         if (pid < 0) {
             perror("Fork failed");
             OSMP_Log(OSMP_LOG_FAILS, "Fork failed");
-            // Rank zurück in Queue einreihen, da Prozess nicht gestartet wurde
-            osmp_shared->front = (osmp_shared->front - 1 + OSMP_MAX_PROCESSES) % OSMP_MAX_PROCESSES;
-            osmp_shared->free_rank_count++;
             continue;
         } else if (pid == 0) {
             // Kindprozess – führt nur exec() aus
@@ -184,14 +170,16 @@ int main(int argc, char *argv[]) {
             OSMP_Log(OSMP_LOG_FAILS, "Exec failed");
             exit(EXIT_FAILURE);
         } else {
-            // ✅ Nur hier im Elternprozess die pid_map schreiben
-            osmp_shared->pid_map[rank] = pid;
+            // Nur hier im Elternprozess die pid_map schreiben
+            osmp_shared->pid_map[i] = pid;
 
-            snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d (Rank %d)", i + 1, pid, rank);
+            snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d (Rank %d)", i + 1, pid, i);
             pid_children[started_count++] = pid;
             OSMP_Log(OSMP_LOG_BIB_CALL, buffer);
         }
     }
+
+
 
     // Warte, bis alle Kindprozesse beendet sind
     for (int i = 0; i < started_count; i++) {
@@ -200,12 +188,11 @@ int main(int argc, char *argv[]) {
         if (pid == -1) {
             perror("Error: Wait failed");
             OSMP_Log(OSMP_LOG_FAILS, "Wait failed");
-            continue;
         } else{
             if (WIFEXITED(status)) { // Liest Bits des Status – sauberer Abgang, wenn WIFEXITED true ist
                 // Finde den Rang des beendeten Prozesses anhand der PID
                 int freed_rank = -1;
-                for (int r = 0; r < OSMP_MAX_PROCESSES; r++) {
+                for (int r = 0; r < process_count; r++) {
                     if (osmp_shared->pid_map[r] == pid) {
                         freed_rank = r;
                         break;
@@ -213,9 +200,6 @@ int main(int argc, char *argv[]) {
                 }
                 if (freed_rank != -1) {
                     osmp_shared->pid_map[freed_rank] = -1;
-                    osmp_shared->free_ranks[osmp_shared->rear++] = freed_rank;
-                    osmp_shared->rear %= OSMP_MAX_PROCESSES;
-                    osmp_shared->free_rank_count++;
                 } else{
                     snprintf(buffer, sizeof(buffer), "PID %d not found in pid_map", pid);
                     OSMP_Log(OSMP_LOG_FAILS, buffer);
@@ -224,11 +208,13 @@ int main(int argc, char *argv[]) {
                 snprintf(buffer, sizeof(buffer), "Child process %d exited with code %d", pid, exit_status);
                 OSMP_Log(OSMP_LOG_BIB_CALL, buffer);
             } else{
-                snprintf(buffer, sizeof(buffer), "Child process %d terminated abnormally", pid);
+                snprintf(buffer, sizeof(buffer), "Child process %d terminated abnormally with code %d", pid, status);
                 OSMP_Log(OSMP_LOG_FAILS, buffer);
             }
         }
     }
+
+    shm_unlink(SHM_NAME);
 
     if (log_fd != -1) {
         close(log_fd);

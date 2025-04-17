@@ -38,7 +38,9 @@ int main(int argc, char *argv[]) {
     }
 
     fprintf(stdout, "PID: %d | PPID: %d\n", getpid(), getppid());
+
     fprintf(stdout, "Hallo von Rank %d von %d\n", rank, size);
+
 
     // Finalize
     rv = OSMP_Finalize();

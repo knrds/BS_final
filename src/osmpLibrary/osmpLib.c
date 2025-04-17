@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <sys/stat.h>
 
 static osmp_shared_info_t *osmp_shared = NULL;
 static int osmp_rank = -1;
@@ -54,13 +55,26 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-    // Setze die Größe des Shared Memory
-    void *ptr = mmap(NULL, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+
+    struct stat shm_stat;
+    if (fstat(shm_fd, &shm_stat) == -1) {
+        perror("fstat failed");
+        close(shm_fd);
+        return OSMP_FAILURE;
+    }
+
+
+
+    void *ptr = mmap(NULL, (size_t)shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+
+
     if (ptr == MAP_FAILED) {
         perror("mmap failed");
         close(shm_fd);
         return OSMP_FAILURE;
     }
+
+
 
     // Initialisiere den Shared Memory
     osmp_shared = (osmp_shared_info_t *)ptr;
@@ -69,8 +83,9 @@ int OSMP_Init(const int *argc, char ***argv) {
     pid_t my_pid = getpid();
     osmp_rank = -1;
 
+
     // Durchsuche pid_map auf meine PID
-    for (int i = 0; i < OSMP_MAX_PROCESSES; i++) {
+    for (int i = 0; i < osmp_shared->process_count; i++) {
         if (osmp_shared->pid_map[i] == my_pid) {
             osmp_rank = i;
             break;
@@ -146,6 +161,8 @@ int OSMP_Size(int *size) {
 }
 
 
+
+
 int OSMP_Rank(int *rank) {
     // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
     if (!osmp_shared || !rank) {
@@ -194,12 +211,15 @@ int OSMP_Finalize(void) {
     }
 
     osmp_shared->pid_map[osmp_rank] = -1; // Setze den eigenen PID-Eintrag auf -1
-    osmp_shared->free_ranks[osmp_shared->rear++] = osmp_rank; // Füge den Rang zu den freien Rängen hinzu
-    osmp_shared->rear %= OSMP_MAX_PROCESSES; // Zirkuläre Queue
 
     char msg[128];
     snprintf(msg, sizeof(msg), "OSMP_Finalize: Process %d finalized and released", osmp_rank);
     OSMP_Log(OSMP_LOG_BIB_CALL, msg);
+
+    if (munmap(osmp_shared, SHM_SIZE) == -1) {
+        perror("munmap failed");
+        return OSMP_FAILURE;
+    }
 
     return OSMP_GetSucess();
 }
@@ -310,10 +330,14 @@ int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
         return OSMP_FAILURE;
     }
 
-    if(write(osmp_shared->log_fd, log_line, strlen(log_line)) < 0) {
+
+    // Schreiben Sie die Logzeile in die Logdatei
+    FILE *file = fopen(osmp_shared->logfile_path, "a");
+    if (file == NULL){
         fprintf(stderr, "OSMP_Log: Error writing to log file\n");
         return OSMP_FAILURE;
     }
-
+    fprintf(file, "%s", log_line);
+    fclose(file);
     return OSMP_SUCCESS;
 }
