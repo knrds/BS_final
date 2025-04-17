@@ -15,8 +15,11 @@
 #include <stdio.h>
 #include <time.h>
 
+#define OSMP_PROCESSES 256
+
 static osmp_shared_info_t *osmp_shared = NULL;
 static int osmp_rank = -1;
+static int log_fd = -1;
 
 int OSMP_GetMaxPayloadLength(void) {
     // TODO: Implementieren Sie hier die Funktionalität der Funktion.
@@ -70,7 +73,7 @@ int OSMP_Init(const int *argc, char ***argv) {
     osmp_rank = -1;
 
     // Durchsuche pid_map auf meine PID
-    for (int i = 0; i < OSMP_MAX_PROCESSES; i++) {
+    for (int i = 0; i < osmp_shared->process_count; i++) {
         if (osmp_shared->pid_map[i] == my_pid) {
             osmp_rank = i;
             break;
@@ -79,6 +82,13 @@ int OSMP_Init(const int *argc, char ***argv) {
 
     if (osmp_rank == -1) {
         fprintf(stderr, "OSMP_Init: PID %d not found in pid_map\n", my_pid);
+        perror("OSMP_Init: PID not found in pid_map");
+        return OSMP_FAILURE;
+    }
+
+    log_fd = open(osmp_shared->logfile_path, O_WRONLY | O_APPEND | O_CREAT, 0666);
+    if (log_fd == -1) {
+        perror("Could not open log file");
         return OSMP_FAILURE;
     }
 
@@ -194,12 +204,13 @@ int OSMP_Finalize(void) {
     }
 
     osmp_shared->pid_map[osmp_rank] = -1; // Setze den eigenen PID-Eintrag auf -1
-    osmp_shared->free_ranks[osmp_shared->rear++] = osmp_rank; // Füge den Rang zu den freien Rängen hinzu
-    osmp_shared->rear %= OSMP_MAX_PROCESSES; // Zirkuläre Queue
 
     char msg[128];
     snprintf(msg, sizeof(msg), "OSMP_Finalize: Process %d finalized and released", osmp_rank);
     OSMP_Log(OSMP_LOG_BIB_CALL, msg);
+
+    //close fd
+    close(log_fd);
 
     return OSMP_GetSucess();
 }
@@ -280,18 +291,15 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
 
 int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
 
-    // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
     if (!osmp_shared || !message) {
         fprintf(stderr, "OSMP_Log: Invalid parameters\n");
         return OSMP_FAILURE;
     }
 
-    // Überprüfen Sie, ob der Prozess initialisiert ist
     if ((int)verbosity > osmp_shared->verbosity_level) {
-        return OSMP_SUCCESS; // → Logging wird nicht ausgeführt, aber kein Fehler
+        return OSMP_SUCCESS;
     }
 
-    // Loggen Sie die Nachricht in die Logdatei
     time_t now = time(NULL);
     struct tm *tm_info = localtime(&now);
 
@@ -310,7 +318,7 @@ int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
         return OSMP_FAILURE;
     }
 
-    if(write(osmp_shared->log_fd, log_line, strlen(log_line)) < 0) {
+    if(log_fd > 0 && write(log_fd, log_line, strlen(log_line)) < 0) {
         fprintf(stderr, "OSMP_Log: Error writing to log file\n");
         return OSMP_FAILURE;
     }

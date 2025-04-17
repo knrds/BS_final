@@ -14,12 +14,14 @@ int main(int argc, char *argv[]) {
     rv = OSMP_Init(&argc, &argv);
     if (rv != OSMP_SUCCESS) {
         fprintf(stderr, "OSMP_Init failed\n");
+        perror("OSMP_Init failed");
         return EXIT_FAILURE;
     }
 
     // Bestimme Gesamtanzahl der Prozesse
     rv = OSMP_Size(&size);
     if (rv != OSMP_SUCCESS) {
+        perror("OSMP_Size failed");
         fprintf(stderr, "OSMP_Size failed\n");
         return EXIT_FAILURE;
     }
@@ -27,6 +29,7 @@ int main(int argc, char *argv[]) {
     // Bestimme eigenen Rank
     rv = OSMP_Rank(&rank);
     if (rv != OSMP_SUCCESS) {
+        perror("OSMP_Rank failed");
         fprintf(stderr, "OSMP_Rank failed\n");
         return EXIT_FAILURE;
     }
