@@ -1,0 +1,75 @@
+[16:45:09] PID 16111: Starting 20 instances of ./build/echoAll
+[16:45:09] PID 16111: Started instance 1 with PID 16112 (Rank 0)
+[16:45:09] PID 16111: Started instance 2 with PID 16113 (Rank 1)
+[16:45:09] PID 16111: Started instance 3 with PID 16114 (Rank 2)
+[16:45:09] PID 16111: Started instance 4 with PID 16115 (Rank 3)
+[16:45:09] PID 16111: Started instance 5 with PID 16116 (Rank 4)
+[16:45:09] PID 16111: Started instance 6 with PID 16117 (Rank 5)
+[16:45:09] PID 16111: Started instance 7 with PID 16118 (Rank 6)
+[16:45:09] PID 16111: Started instance 8 with PID 16119 (Rank 7)
+[16:45:09] PID 16111: Started instance 9 with PID 16120 (Rank 8)
+[16:45:09] PID 16112: OSMP_Init() called
+[16:45:09] PID 16113: OSMP_Init() called
+[16:45:09] PID 16112: OSMP_Finalize: Process 0 finalized and released
+[16:45:09] PID 16113: OSMP_Finalize: Process 1 finalized and released
+[16:45:09] PID 16116: OSMP_Init() called
+[16:45:09] PID 16116: OSMP_Finalize: Process 4 finalized and released
+[16:45:09] PID 16114: OSMP_Init() called
+[16:45:09] PID 16114: OSMP_Finalize: Process 2 finalized and released
+[16:45:09] PID 16118: OSMP_Init() called
+[16:45:09] PID 16118: OSMP_Finalize: Process 6 finalized and released
+[16:45:09] PID 16117: OSMP_Init() called
+[16:45:09] PID 16117: OSMP_Finalize: Process 5 finalized and released
+[16:45:09] PID 16115: OSMP_Init() called
+[16:45:09] PID 16111: Started instance 10 with PID 16121 (Rank 9)
+[16:45:09] PID 16111: Started instance 11 with PID 16122 (Rank 0)
+[16:45:09] PID 16111: Started instance 12 with PID 16123 (Rank 1)
+[16:45:09] PID 16119: OSMP_Init() called
+[16:45:09] PID 16111: Started instance 13 with PID 16124 (Rank 4)
+[16:45:09] PID 16120: OSMP_Init() called
+[16:45:09] PID 16111: Started instance 14 with PID 16125 (Rank 2)
+[16:45:09] PID 16111: Started instance 15 with PID 16126 (Rank 6)
+[16:45:09] PID 16111: Started instance 16 with PID 16127 (Rank 5)
+[16:45:09] PID 16111: Started instance 17 with PID 16128 (Rank 6)
+[16:45:09] PID 16111: Started instance 18 with PID 16129 (Rank 7)
+[16:45:09] PID 16111: Started instance 19 with PID 16130 (Rank 8)
+[16:45:09] PID 16121: OSMP_Init() called
+[16:45:09] PID 16111: Started instance 20 with PID 16131 (Rank 9)
+[16:45:09] PID 16124: OSMP_Init() called
+[16:45:09] PID 16111: Child process 16112 exited with code 0
+[16:45:09] PID 16111: Child process 16113 exited with code 0
+[16:45:09] PID 16111: Child process 16114 exited with code 0
+[16:45:09] PID 16115: OSMP_Finalize: Process 3 finalized and released
+[16:45:09] PID 16128: OSMP_Init() called
+[16:45:09] PID 16119: OSMP_Finalize: Process 7 finalized and released
+[16:45:09] PID 16122: OSMP_Init() called
+[16:45:09] PID 16131: OSMP_Init() called
+[16:45:09] PID 16125: OSMP_Init() called
+[16:45:09] PID 16120: OSMP_Finalize: Process 8 finalized and released
+[16:45:09] PID 16111: Child process 16115 exited with code 0
+[16:45:09] PID 16111: Child process 16116 exited with code 0
+[16:45:09] PID 16111: Child process 16117 exited with code 0
+[16:45:09] PID 16111: Child process 16118 exited with code 0
+[16:45:09] PID 16111: Child process 16119 exited with code 0
+[16:45:09] PID 16111: Child process 16120 exited with code 0
+[16:45:09] PID 16121: OSMP_Finalize: Process 9 finalized and released
+[16:45:09] PID 16124: OSMP_Finalize: Process 4 finalized and released
+[16:45:09] PID 16111: Child process 16121 exited with code 0
+[16:45:09] PID 16123: OSMP_Init() called
+[16:45:09] PID 16123: OSMP_Finalize: Process 1 finalized and released
+[16:45:09] PID 16125: OSMP_Finalize: Process 2 finalized and released
+[16:45:09] PID 16127: OSMP_Init() called
+[16:45:09] PID 16127: OSMP_Finalize: Process 5 finalized and released
+[16:45:09] PID 16122: OSMP_Finalize: Process 0 finalized and released
+[16:45:09] PID 16128: OSMP_Finalize: Process 6 finalized and released
+[16:45:09] PID 16111: Child process 16122 exited with code 0
+[16:45:09] PID 16111: Child process 16123 exited with code 0
+[16:45:09] PID 16111: Child process 16124 exited with code 0
+[16:45:09] PID 16111: Child process 16125 exited with code 0
+[16:45:09] PID 16111: Child process 16126 exited with code 1
+[16:45:09] PID 16111: Child process 16127 exited with code 0
+[16:45:09] PID 16111: Child process 16128 exited with code 0
+[16:45:09] PID 16111: Child process 16129 exited with code 1
+[16:45:09] PID 16111: Child process 16130 exited with code 1
+[16:45:09] PID 16131: OSMP_Finalize: Process 9 finalized and released
+[16:45:09] PID 16111: Child process 16131 exited with code 0

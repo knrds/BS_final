@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <semaphore.h>
 
 static osmp_shared_info_t *osmp_shared = NULL;
 static int osmp_rank = -1;
@@ -188,6 +189,10 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     UNUSED(datatype);
     UNUSED(dest);
 
+    if (!osmp_shared || !buf || dest < 0){
+        return OSMP_FAILURE;
+    }
+
     // TODO: Implementieren Sie hier die Funktionalität der Funktion.
     return OSMP_FAILURE;
 }
@@ -200,8 +205,35 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
     UNUSED(source);
     UNUSED(len);
 
+    if(!osmp_shared||!buf||!source||!len){
+        return OSMP_FAILURE;
+    }
+
+    int receiver_index = OSMP_Rank(source);
+    Mailbox *receiver_mailbox = osmp_shared->mailboxmap[receiver_index];
+
+    if (sem_wait(osmp_shared->mailbox_full) != 0) {
+        return OSMP_FAILURE; // Fehler beim Warten auf volle Mailbox
+    }
+
+    //  Erhalte den Mutex, um exklusiv auf das Postfach zuzugreifen
+    if (sem_wait(receiver_mailbox->mutex) != 0) {
+        return OSMP_FAILURE; // Fehler beim Warten auf den Mutex
+    }
+
+    //HIER KRITISCHEAKTION
+
+    if (sem_post(receiver_mailbox->mutex) != 0) {
+        return OSMP_FAILURE; // Fehler beim Freigeben des Mutex
+    }
+
+    // 9. Signalisiere, dass jetzt Platz im Postfach ist
+    if (sem_post(osmp_shared->mailbox_empty) != 0) {
+        return OSMP_FAILURE; // Fehler beim Freigeben der leeren Mailbox
+    }
+
     // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Finalize(void) {
