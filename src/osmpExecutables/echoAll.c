@@ -41,7 +41,6 @@ int main(int argc, char *argv[]) {
 
     fprintf(stdout, "Hallo von Rank %d von %d\n", rank, size);
 
-
     // Finalize
     rv = OSMP_Finalize();
     if (rv != OSMP_SUCCESS) {

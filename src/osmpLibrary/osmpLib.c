@@ -56,7 +56,6 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-
     struct stat shm_stat;
     if (fstat(shm_fd, &shm_stat) == -1) {
         perror("fstat failed");
@@ -64,10 +63,7 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-
-
-    void *ptr = mmap(NULL, (size_t)shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-
+    void *ptr = mmap(NULL, (size_t) shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
     if (ptr == MAP_FAILED) {
         perror("mmap failed");
@@ -75,15 +71,12 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-
-
     // Initialisiere den Shared Memory
-    osmp_shared = (osmp_shared_info_t *)ptr;
+    osmp_shared = (osmp_shared_info_t *) ptr;
 
     // Setze die Anzahl der Prozesse auf 0
     pid_t my_pid = getpid();
     osmp_rank = -1;
-
 
     // Durchsuche pid_map auf meine PID
     for (int i = 0; i < osmp_shared->process_count; i++) {
@@ -104,11 +97,9 @@ int OSMP_Init(const int *argc, char ***argv) {
 
 int OSMP_SetSharedMemory(void *ptr) {
     if (ptr == NULL) return OSMP_FAILURE;
-    osmp_shared = (osmp_shared_info_t *)ptr;
+    osmp_shared = (osmp_shared_info_t *) ptr;
     return OSMP_SUCCESS;
 }
-
-
 
 
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
@@ -162,8 +153,6 @@ int OSMP_Size(int *size) {
 }
 
 
-
-
 int OSMP_Rank(int *rank) {
     // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
     if (!osmp_shared || !rank) {
@@ -189,12 +178,64 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     UNUSED(datatype);
     UNUSED(dest);
 
-    if (!osmp_shared || !buf || dest < 0){
-        return OSMP_FAILURE;
-    }
 
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+    const int N = osmp_shared->process_count;
+    if (dest < 0 || dest >= N || count < 0)
+        return OSMP_FAILURE;
+
+    unsigned int elem_size;
+    if (OSMP_SizeOf(datatype, &elem_size) != OSMP_SUCCESS)
+        return OSMP_FAILURE;
+
+    if ((size_t) count > OSMP_MAX_PAYLOAD_LENGTH / elem_size)
+        return OSMP_FAILURE;
+
+    const size_t payload_bytes = (size_t) count * elem_size;
+
+    //pointer auf Shared MemoryÜ
+    Mailbox *mailboxes =
+            (Mailbox *) (osmp_shared->pid_map + N);
+    FreeSlotQueue *fsq =
+            (FreeSlotQueue *) (mailboxes + N);
+    MessageSlot *slots =
+            (MessageSlot *) (fsq + 1);
+
+    //Race Condition vermeiden
+    sem_wait(&fsq->sem_slots);
+    sem_wait(&fsq->mutex);
+    const int idx = fsq->free_slots[fsq->head];
+    fsq->head = (uint16_t) (((int) fsq->head + 1) % OSMP_MAX_SLOTS);
+    sem_post(&fsq->mutex);
+
+    //Message Slot belegen
+    slots[idx].datatype = datatype;
+    slots[idx].count = count;
+    slots[idx].source = osmp_rank;
+    slots[idx].payload_length = payload_bytes;
+    memcpy(slots[idx].payload, buf, payload_bytes);
+    slots[idx].next = -1;
+
+    //In Ziel-Mailbox einhängen
+    Mailbox *mb = &mailboxes[dest];
+    sem_wait(&mb->sem_empty); // blockiert, wenn Mailbox voll
+    sem_wait(&mb->mutex);
+    if (mb->tail < 0) {
+        // erste Nachricht
+        mb->head = mb->tail = idx;
+    } else {
+        slots[mb->tail].next = idx;
+        mb->tail = idx;
+    }
+    sem_post(&mb->mutex);
+    sem_post(&mb->sem_full);
+
+
+    char msg[128];
+    snprintf(msg, sizeof(msg), "OSMP_Send: Process %d sent %lu bytes to process %d",
+             osmp_rank, payload_bytes, dest);
+    OSMP_Log(OSMP_LOG_BIB_CALL, msg);
+
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
@@ -205,39 +246,71 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
     UNUSED(source);
     UNUSED(len);
 
-    if(!osmp_shared||!buf||!source||!len){
+    if (!buf || !source || !len || count < 0)
+        return OSMP_FAILURE;
+    const int N = osmp_shared->process_count;
+    if (osmp_rank < 0 || osmp_rank >= N)
+        return OSMP_FAILURE;
+
+    unsigned int elem_size;
+    if (OSMP_SizeOf(datatype, &elem_size) != OSMP_SUCCESS)
+        return OSMP_FAILURE;
+
+    if ((size_t) count > OSMP_MAX_PAYLOAD_LENGTH / elem_size)
+        return OSMP_FAILURE;
+
+    //Maximale Kopier-Bytezahl prüfen (Overflow / Puffer überschreiben)
+    size_t max_bytes = (size_t) count * elem_size;
+
+    // Pointer auf Shared Memory
+    pid_t *pid_map = osmp_shared->pid_map;
+    Mailbox *mailboxes = (Mailbox *) (pid_map + N);
+    FreeSlotQueue *fsq = (FreeSlotQueue *) (mailboxes + N);
+    MessageSlot *slots = (MessageSlot *) (fsq + 1);
+
+    Mailbox *mb = &mailboxes[osmp_rank];
+
+    sem_wait(&mb->sem_full);
+    sem_wait(&mb->mutex);
+
+    int idx = mb->head;
+    if (idx < 0) {
+        // sollte nie passieren, da sem_full > 0
+        sem_post(&mb->mutex);
         return OSMP_FAILURE;
     }
-
-    int receiver_index = OSMP_Rank(source);
-    Mailbox *receiver_mailbox = osmp_shared->mailboxmap[receiver_index];
-
-    if (sem_wait(osmp_shared->mailbox_full) != 0) {
-        return OSMP_FAILURE; // Fehler beim Warten auf volle Mailbox
+    mb->head = slots[idx].next;
+    if (mb->head < 0) {
+        // Liste nun leer
+        mb->tail = -1;
     }
+    sem_post(&mb->mutex);
+    sem_post(&mb->sem_empty);
 
-    //  Erhalte den Mutex, um exklusiv auf das Postfach zuzugreifen
-    if (sem_wait(receiver_mailbox->mutex) != 0) {
-        return OSMP_FAILURE; // Fehler beim Warten auf den Mutex
-    }
+    const size_t payload_len = slots[idx].payload_length;
+    const size_t nbytes = payload_len < max_bytes ? payload_len : max_bytes;
+    memcpy(buf, slots[idx].payload, nbytes);
 
-    //HIER KRITISCHEAKTION
+    *source = slots[idx].source;
+    *len = (int) nbytes;
 
-    if (sem_post(receiver_mailbox->mutex) != 0) {
-        return OSMP_FAILURE; // Fehler beim Freigeben des Mutex
-    }
+    //Slot-Index zurück in die FreeSlotQueue
+    sem_wait(&fsq->mutex);
+    fsq->free_slots[fsq->tail] = idx;
+    fsq->tail = (uint16_t) (((int) fsq->tail + 1) % OSMP_MAX_SLOTS);
+    sem_post(&fsq->mutex);
+    sem_post(&fsq->sem_slots);
 
-    // 9. Signalisiere, dass jetzt Platz im Postfach ist
-    if (sem_post(osmp_shared->mailbox_empty) != 0) {
-        return OSMP_FAILURE; // Fehler beim Freigeben der leeren Mailbox
-    }
+    char msg[128];
+    snprintf(msg, sizeof(msg), "OSMP_Recv: Process %d received %lu bytes from process %d",
+             osmp_rank, payload_len, *source);
+    OSMP_Log(OSMP_LOG_BIB_CALL, msg);
 
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
     return OSMP_SUCCESS;
 }
 
 int OSMP_Finalize(void) {
-    if(osmp_shared == NULL || osmp_rank == -1) {
+    if (osmp_shared == NULL || osmp_rank == -1) {
         fprintf(stderr, "OSMP_Finalize: Shared memory not initialized\n");
         return OSMP_FAILURE;
     }
@@ -331,7 +404,6 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
 }
 
 int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
-
     // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
     if (!osmp_shared || !message) {
         fprintf(stderr, "OSMP_Log: Invalid parameters\n");
@@ -339,7 +411,7 @@ int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
     }
 
     // Überprüfen Sie, ob der Prozess initialisiert ist
-    if ((int)verbosity > osmp_shared->verbosity_level) {
+    if ((int) verbosity > osmp_shared->verbosity_level) {
         return OSMP_SUCCESS; // → Logging wird nicht ausgeführt, aber kein Fehler
     }
 
@@ -350,14 +422,14 @@ int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
     char log_line[512];
 
     int written = snprintf(log_line, sizeof(log_line),
-                            "[%02d:%02d:%02d] PID %d: %s\n",
-                            tm_info->tm_hour,
-                            tm_info->tm_min,
-                            tm_info->tm_sec,
-                            getpid(),
-                            message);
+                           "[%02d:%02d:%02d] PID %d: %s\n",
+                           tm_info->tm_hour,
+                           tm_info->tm_min,
+                           tm_info->tm_sec,
+                           getpid(),
+                           message);
 
-    if (written < 0 ) {
+    if (written < 0) {
         fprintf(stderr, "OSMP_Log: Error writing to log file\n");
         return OSMP_FAILURE;
     }
@@ -365,7 +437,7 @@ int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
 
     // Schreiben Sie die Logzeile in die Logdatei
     FILE *file = fopen(osmp_shared->logfile_path, "a");
-    if (file == NULL){
+    if (file == NULL) {
         fprintf(stderr, "OSMP_Log: Error writing to log file\n");
         return OSMP_FAILURE;
     }

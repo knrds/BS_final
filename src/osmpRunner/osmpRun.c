@@ -18,14 +18,23 @@
 #include "../osmpLibrary/osmpLib.h"
 
 char *logfile_path = NULL; // Pfad zur Logdatei
-int verbosity_level = 1;  // Standard: Level 1
+int verbosity_level = 1; // Standard: Level 1
 char buffer[256]; // Puffer für Log-Meldungen
 
 osmp_shared_info_t *osmp_shared = NULL; // globaler Zeiger
 
 int setup_shared_memory(int process_count) {
-    size_t shm_size = sizeof(osmp_shared_info_t)
-                    + (size_t)process_count * sizeof(pid_t);
+    size_t sz_hdr = sizeof(osmp_shared_info_t);
+    size_t sz_pidmap = (size_t) process_count * sizeof(pid_t);
+    size_t sz_mailbx = (size_t) process_count * sizeof(Mailbox);
+    size_t sz_fsq = sizeof(FreeSlotQueue);
+    size_t sz_slots = OSMP_MAX_SLOTS * sizeof(MessageSlot);
+
+    size_t shm_size = sz_hdr
+                      + sz_pidmap
+                      + sz_mailbx
+                      + sz_fsq
+                      + sz_slots;
 
     shm_unlink(SHM_NAME);
     int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
@@ -48,15 +57,11 @@ int setup_shared_memory(int process_count) {
     }
 
     OSMP_SetSharedMemory(ptr);
-    osmp_shared = (osmp_shared_info_t *)ptr;
+    osmp_shared = (osmp_shared_info_t *) ptr;
     memset(osmp_shared, 0, shm_size);
 
     osmp_shared->process_count = process_count;
-
-
-    for (int i = 0; i < process_count; i++) {
-        osmp_shared->pid_map[i] = -1;
-    }
+    osmp_shared->verbosity_level = verbosity_level;
 
     if (logfile_path != NULL) {
         strncpy(osmp_shared->logfile_path, logfile_path, sizeof(osmp_shared->logfile_path) - 1);
@@ -65,12 +70,37 @@ int setup_shared_memory(int process_count) {
         osmp_shared->logfile_path[0] = '\0';
     }
 
-    osmp_shared->verbosity_level = verbosity_level;
+    pid_t *pid_map = osmp_shared->pid_map;
+    for (int i = 0; i < process_count; i++)
+        pid_map[i] = -1;
+
+    // Mailboxes anschließen
+    Mailbox *mailboxes =
+            (Mailbox *) (pid_map + process_count);
+    for (int i = 0; i < process_count; i++) {
+        sem_init(&mailboxes[i].sem_empty, 1, OSMP_MAX_MESSAGES_PROC);
+        sem_init(&mailboxes[i].sem_full, 1, 0);
+        sem_init(&mailboxes[i].mutex, 1, 1);
+        mailboxes[i].head = mailboxes[i].tail = -1;
+    }
+
+    // FreeSlotQueue anschließen
+    FreeSlotQueue *fsq =
+            (FreeSlotQueue *) (mailboxes + process_count);
+    fsq->head = fsq->tail = 0;
+    sem_init(&fsq->sem_slots, 1, OSMP_MAX_SLOTS);
+    sem_init(&fsq->mutex, 1, 1);
+    for (int i = 0; i < OSMP_MAX_SLOTS; i++)
+        fsq->free_slots[fsq->tail++] = i;
+
+    MessageSlot *slots = (MessageSlot *) (fsq + 1);
+    for (int i = 0; i < OSMP_MAX_SLOTS; ++i) {
+        slots[i].next = -1;
+    }
 
     close(fd);
     return 0;
 }
-
 
 
 int main(int argc, char *argv[]) {
@@ -81,9 +111,8 @@ int main(int argc, char *argv[]) {
     int started_count = 0; // Zähler für gestartete Prozesse
 
 
-
     // Analysiere Befehlszeilenoptionen
-    while((opt = getopt(argc, argv, "p:l:v:e:")) != -1) {
+    while ((opt = getopt(argc, argv, "p:l:v:e:")) != -1) {
         switch (opt) {
             // -p: Anzahl der zu startenden Prozesse
             case 'p': {
@@ -94,13 +123,13 @@ int main(int argc, char *argv[]) {
                     return EXIT_FAILURE;
                 }
             }
-                break;
-                // -l: Pfad zur Logdatei
+            break;
+            // -l: Pfad zur Logdatei
             case 'l':
                 logfile_path = optarg;
                 break;
-                // -v: Verbositätslevel
-            case 'v':{
+            // -v: Verbositätslevel
+            case 'v': {
                 char *endptr;
                 verbosity_level = (int) strtol(optarg, &endptr, 10);
                 if (*endptr != '\0' || verbosity_level < 1 || verbosity_level > 3) {
@@ -108,16 +137,19 @@ int main(int argc, char *argv[]) {
                     return EXIT_FAILURE;
                 }
             }
-                break;
-                // -e: Pfad zur ausführbaren Datei
+            break;
+            // -e: Pfad zur ausführbaren Datei
             case 'e':
                 executable_path = optarg;
                 exec_args = &argv[optind - 1]; // Setze den Pfad der ausführbaren Datei ohne "-e"
                 exec_args[0] = executable_path; // Setze den Pfad der ausführbaren Datei korrekt
                 break;
-                // Ungültige Option - Nutzungshinweis
+            // Ungültige Option - Nutzungshinweis
             default:
-                fprintf(stderr, "Usage: %s [-p process_count] [-l logfile_path] [-v verbosity_level] [-e executable_path]\n", argv[0]);
+                fprintf(
+                    stderr,
+                    "Usage: %s [-p process_count] [-l logfile_path] [-v verbosity_level] [-e executable_path]\n",
+                    argv[0]);
                 return EXIT_FAILURE;
         }
     }
@@ -132,8 +164,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Shared Memory Setup failed\n");
         return EXIT_FAILURE;
     }
-
-    osmp_shared->process_count = process_count;
 
     // Leere Logdatei, falls vorhanden
     if (logfile_path) fclose(fopen(logfile_path, "w"));
@@ -154,7 +184,6 @@ int main(int argc, char *argv[]) {
     pid_t pid_children[process_count]; // Array zur Speicherung der Kinderprozess-IDs
 
     for (int i = 0; i < process_count; i++) {
-
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -180,34 +209,20 @@ int main(int argc, char *argv[]) {
     }
 
 
-
     // Warte, bis alle Kindprozesse beendet sind
     for (int i = 0; i < started_count; i++) {
         int status;
         pid_t pid = waitpid(pid_children[i], &status, 0);
+
         if (pid == -1) {
             perror("Error: Wait failed");
             OSMP_Log(OSMP_LOG_FAILS, "Wait failed");
-        } else{
-            if (WIFEXITED(status)) { // Liest Bits des Status – sauberer Abgang, wenn WIFEXITED true ist
-                // Finde den Rang des beendeten Prozesses anhand der PID
-                int freed_rank = -1;
-                for (int r = 0; r < process_count; r++) {
-                    if (osmp_shared->pid_map[r] == pid) {
-                        freed_rank = r;
-                        break;
-                    }
-                }
-                if (freed_rank != -1) {
-                    osmp_shared->pid_map[freed_rank] = -1;
-                } else{
-                    snprintf(buffer, sizeof(buffer), "PID %d not found in pid_map", pid);
-                    OSMP_Log(OSMP_LOG_FAILS, buffer);
-                }
+        } else {
+            if (WIFEXITED(status)) {
                 int exit_status = WEXITSTATUS(status);
                 snprintf(buffer, sizeof(buffer), "Child process %d exited with code %d", pid, exit_status);
                 OSMP_Log(OSMP_LOG_BIB_CALL, buffer);
-            } else{
+            } else {
                 snprintf(buffer, sizeof(buffer), "Child process %d terminated abnormally with code %d", pid, status);
                 OSMP_Log(OSMP_LOG_FAILS, buffer);
             }
