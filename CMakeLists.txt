@@ -43,6 +43,14 @@ set(EXECUTABLES
         SOURCES src/osmpExecutables/echoAll_base.c
         NAME testSendRec
         SOURCES src/osmpExecutables/testSendRec.c
+        NAME testSendRecMulti
+        SOURCES src/osmpExecutables/testSendRecMulti.c
+        NAME testSendRecBroadcast
+        SOURCES src/osmpExecutables/testSendRecBroadcast.c
+        NAME testSendRecBlock
+        SOURCES src/osmpExecutables/testSendRecBlock.c
+        NAME testSendRecRace
+        SOURCES src/osmpExecutables/testSendRecRace.c
         # Neue Executables hier einfügen
         # NAME <name>
         # SOURCES <source1> <source2> ...
