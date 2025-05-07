@@ -74,6 +74,10 @@ int setup_shared_memory(int process_count) {
     for (int i = 0; i < process_count; i++)
         pid_map[i] = -1;
 
+    // Initialisierung
+    sem_init(&osmp_shared->log_mutex, 1, 1); // 1 = für Shared Memory
+
+
     // Mailboxes anschließen
     Mailbox *mailboxes =
             (Mailbox *) (pid_map + process_count);

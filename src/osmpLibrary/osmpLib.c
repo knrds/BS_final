@@ -434,8 +434,8 @@ int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
         return OSMP_FAILURE;
     }
 
-
     // Schreiben Sie die Logzeile in die Logdatei
+    sem_wait(&osmp_shared->log_mutex);
     FILE *file = fopen(osmp_shared->logfile_path, "a");
     if (file == NULL) {
         fprintf(stderr, "OSMP_Log: Error writing to log file\n");
@@ -443,5 +443,6 @@ int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
     }
     fprintf(file, "%s", log_line);
     fclose(file);
+    sem_post(&osmp_shared->log_mutex);
     return OSMP_SUCCESS;
 }

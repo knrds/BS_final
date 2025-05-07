@@ -49,6 +49,7 @@ typedef struct {
     int process_count;
     char logfile_path[256];
     int verbosity_level;
+    sem_t log_mutex;
     pid_t pid_map[];
 } osmp_shared_info_t;
 
