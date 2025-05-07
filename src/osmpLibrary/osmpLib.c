@@ -202,10 +202,10 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
     //Race Condition vermeiden
     sem_wait(&fsq->sem_slots);
-    sem_wait(&fsq->mutex);
+    sem_wait(&fsq->free_slots_mutex);
     const int idx = fsq->free_slots[fsq->head];
     fsq->head = (uint16_t) (((int) fsq->head + 1) % OSMP_MAX_SLOTS);
-    sem_post(&fsq->mutex);
+    sem_post(&fsq->free_slots_mutex);
 
     //Message Slot belegen
     slots[idx].datatype = datatype;
@@ -217,8 +217,8 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
     //In Ziel-Mailbox einhängen
     Mailbox *mb = &mailboxes[dest];
-    sem_wait(&mb->sem_empty); // blockiert, wenn Mailbox voll
-    sem_wait(&mb->mutex);
+    sem_wait(&mb->sem_free_mailbox_slots); // blockiert, wenn Mailbox voll
+    sem_wait(&mb->mailbox_mutex);
     if (mb->tail < 0) {
         // erste Nachricht
         mb->head = mb->tail = idx;
@@ -226,8 +226,8 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
         slots[mb->tail].next = idx;
         mb->tail = idx;
     }
-    sem_post(&mb->mutex);
-    sem_post(&mb->sem_full);
+    sem_post(&mb->mailbox_mutex);
+    sem_post(&mb->sem_msg_available);
 
 
     char msg[128];
@@ -270,13 +270,13 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
 
     Mailbox *mb = &mailboxes[osmp_rank];
 
-    sem_wait(&mb->sem_full);
-    sem_wait(&mb->mutex);
+    sem_wait(&mb->sem_msg_available);
+    sem_wait(&mb->mailbox_mutex);
 
     int idx = mb->head;
     if (idx < 0) {
-        // sollte nie passieren, da sem_full > 0
-        sem_post(&mb->mutex);
+        // sollte nie passieren, da sem_msg_available > 0
+        sem_post(&mb->mailbox_mutex);
         return OSMP_FAILURE;
     }
     mb->head = slots[idx].next;
@@ -284,8 +284,8 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
         // Liste nun leer
         mb->tail = -1;
     }
-    sem_post(&mb->mutex);
-    sem_post(&mb->sem_empty);
+    sem_post(&mb->mailbox_mutex);
+    sem_post(&mb->sem_free_mailbox_slots);
 
     const size_t payload_len = slots[idx].payload_length;
     const size_t nbytes = payload_len < max_bytes ? payload_len : max_bytes;
@@ -295,10 +295,10 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
     *len = (int) nbytes;
 
     //Slot-Index zurück in die FreeSlotQueue
-    sem_wait(&fsq->mutex);
+    sem_wait(&fsq->free_slots_mutex);
     fsq->free_slots[fsq->tail] = idx;
     fsq->tail = (uint16_t) (((int) fsq->tail + 1) % OSMP_MAX_SLOTS);
-    sem_post(&fsq->mutex);
+    sem_post(&fsq->free_slots_mutex);
     sem_post(&fsq->sem_slots);
 
     char msg[128];

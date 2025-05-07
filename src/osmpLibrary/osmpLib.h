@@ -20,29 +20,29 @@
 int OSMP_SetSharedMemory(void *ptr);
 
 typedef struct {
-    sem_t sem_empty; // how many messages you may still enqueue (≤ OSMP_MAX_MESSAGES_PROC)
-    sem_t sem_full; // how many messages are currently enqueued
-    sem_t mutex; // protects head/tail
+    sem_t sem_free_mailbox_slots; // how many messages you may still enqueue (≤ OSMP_MAX_MESSAGES_PROC)
+    sem_t sem_msg_available; // how many messages are currently enqueued
+    sem_t mailbox_mutex; // protects head/tail
     int head; // index of first MessageSlot in this mailbox (–1 if empty)
     int tail; // index of last  MessageSlot in this mailbox (–1 if empty)
 } Mailbox;
 
 //Eine nachricht
 typedef struct {
-    OSMP_Datatype datatype;
-    int count;
-    int source;
-    size_t payload_length;
+    OSMP_Datatype datatype; // OSMP_UNSIGNED_CHAR...
+    int count; // Count of the Dataobjects
+    int source; // Who send this slot
+    size_t payload_length; // Actual payload length
     int next; // link to next slot in the same mailbox
     char payload[OSMP_MAX_PAYLOAD_LENGTH];
 } MessageSlot;
 
 //Freie Slot Queue
 typedef struct {
-    uint16_t head, tail;
-    sem_t sem_slots; // how many slots are free (≤ OSMP_MAX_SLOTS)
-    sem_t mutex; // protects the head/tail
-    int free_slots[OSMP_MAX_SLOTS];
+    uint16_t head, tail; // oldest and newest msg
+    sem_t sem_slots; // how many slots are free in general (≤ OSMP_MAX_SLOTS)
+    sem_t free_slots_mutex; // protects the head/tail
+    int free_slots[OSMP_MAX_SLOTS]; // SlotIds
 } FreeSlotQueue;
 
 typedef struct {

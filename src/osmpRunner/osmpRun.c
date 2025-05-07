@@ -82,9 +82,9 @@ int setup_shared_memory(int process_count) {
     Mailbox *mailboxes =
             (Mailbox *) (pid_map + process_count);
     for (int i = 0; i < process_count; i++) {
-        sem_init(&mailboxes[i].sem_empty, 1, OSMP_MAX_MESSAGES_PROC);
-        sem_init(&mailboxes[i].sem_full, 1, 0);
-        sem_init(&mailboxes[i].mutex, 1, 1);
+        sem_init(&mailboxes[i].sem_free_mailbox_slots, 1, OSMP_MAX_MESSAGES_PROC);
+        sem_init(&mailboxes[i].sem_msg_available, 1, 0);
+        sem_init(&mailboxes[i].mailbox_mutex, 1, 1);
         mailboxes[i].head = mailboxes[i].tail = -1;
     }
 
@@ -93,7 +93,7 @@ int setup_shared_memory(int process_count) {
             (FreeSlotQueue *) (mailboxes + process_count);
     fsq->head = fsq->tail = 0;
     sem_init(&fsq->sem_slots, 1, OSMP_MAX_SLOTS);
-    sem_init(&fsq->mutex, 1, 1);
+    sem_init(&fsq->free_slots_mutex, 1, 1);
     for (int i = 0; i < OSMP_MAX_SLOTS; i++)
         fsq->free_slots[fsq->tail++] = i;
 
