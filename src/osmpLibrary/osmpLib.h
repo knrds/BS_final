@@ -22,10 +22,11 @@ int OSMP_SetSharedMemory(void *ptr);
 typedef struct {
     sem_t sem_free_mailbox_slots; // how many messages you may still enqueue (≤ OSMP_MAX_MESSAGES_PROC)
     sem_t sem_msg_available; // how many messages are currently enqueued
-    sem_t mailbox_mutex; // protects head/tail
-    int head; // index of first MessageSlot in this mailbox (–1 if empty)
-    int tail; // index of last  MessageSlot in this mailbox (–1 if empty)
-} Mailbox;
+    sem_t mailbox_mutex; // protects in/out
+    int slot_indices[OSMP_MAX_SLOTS];
+    int in; // index of first MessageType in this mailbox (–1 if empty)
+    int out; // index of last  MessageType in this mailbox (–1 if empty)
+} MailboxTypeManagement;
 
 //Eine nachricht
 typedef struct {
@@ -33,15 +34,14 @@ typedef struct {
     int count; // Count of the Dataobjects
     int source; // Who send this slot
     size_t payload_length; // Actual payload length
-    int next; // link to next slot in the same mailbox
     char payload[OSMP_MAX_PAYLOAD_LENGTH];
-} MessageSlot;
+} MessageType;
 
 //Freie Slot Queue
 typedef struct {
     uint16_t head, tail; // oldest and newest msg
     sem_t sem_slots; // how many slots are free in general (≤ OSMP_MAX_SLOTS)
-    sem_t free_slots_mutex; // protects the head/tail
+    pthread_mutex_t free_slots_mutex; // protects the in/out
     int free_slots[OSMP_MAX_SLOTS]; // SlotIds
 } FreeSlotQueue;
 
@@ -50,7 +50,7 @@ typedef struct {
     char logfile_path[256];
     int verbosity_level;
     sem_t log_mutex;
-    pid_t pid_map[];
+    pid_t pid_map[]; //TODO Alle variablen / dynamischen parmeter in in eine Struktur
 } osmp_shared_info_t;
 
 #include "OSMP.h"

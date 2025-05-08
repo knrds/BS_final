@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
 
         rv = OSMP_Send(send_buf, msg_len, OSMP_UNSIGNED_CHAR, target);
         if (rv != OSMP_SUCCESS) {
-            fprintf(stderr, "[ERROR] Send %d failed at rank %d\n", i, rank);
+            fprintf(stderr, "[ERROR] Send %d failed at rank %d\n", i+1, rank);
         } else {
             printf("[SEND] Rank %d → %d: %s\n", rank, target, send_buf);
         }

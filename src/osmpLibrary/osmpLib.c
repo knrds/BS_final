@@ -10,6 +10,7 @@
 #include "OSMP.h"
 #include <unistd.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <sys/mman.h>
 #include <string.h>
 #include <stdio.h>
@@ -63,13 +64,13 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-    void *ptr = mmap(NULL, (size_t) shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-
+    void *ptr = mmap(NULL, (size_t) shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0); //TODO Shared memory pointer statt ptr*
+    close(shm_fd);
     if (ptr == MAP_FAILED) {
         perror("mmap failed");
-        close(shm_fd);
         return OSMP_FAILURE;
     }
+
 
     // Initialisiere den Shared Memory
     osmp_shared = (osmp_shared_info_t *) ptr;
@@ -187,19 +188,22 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     const size_t payload_bytes = (size_t) count * elem_size;
 
     //pointer auf Shared MemoryÜ
-    Mailbox *mailboxes =
-            (Mailbox *) (osmp_shared->pid_map + N);
+    MailboxTypeManagement *mailboxes =
+            (MailboxTypeManagement *) (osmp_shared->pid_map + N);
     FreeSlotQueue *fsq =
             (FreeSlotQueue *) (mailboxes + N);
-    MessageSlot *slots =
-            (MessageSlot *) (fsq + 1);
+    MessageType *slots =
+            (MessageType *) (fsq + 1);
 
     //Race Condition vermeiden
+    MailboxTypeManagement *mb = &mailboxes[dest];
+    sem_wait(&mb->sem_free_mailbox_slots); // blockiert, wenn voll
+
     sem_wait(&fsq->sem_slots);
-    sem_wait(&fsq->free_slots_mutex);
+    pthread_mutex_lock(&fsq->free_slots_mutex);
     const int idx = fsq->free_slots[fsq->head];
     fsq->head = (uint16_t) (((int) fsq->head + 1) % OSMP_MAX_SLOTS);
-    sem_post(&fsq->free_slots_mutex);
+    pthread_mutex_unlock(&fsq->free_slots_mutex);
 
     //Message Slot belegen
     slots[idx].datatype = datatype;
@@ -207,21 +211,19 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     slots[idx].source = osmp_rank;
     slots[idx].payload_length = payload_bytes;
     memcpy(slots[idx].payload, buf, payload_bytes);
-    slots[idx].next = -1;
 
-    //In Ziel-Mailbox einhängen
-    Mailbox *mb = &mailboxes[dest];
-    sem_wait(&mb->sem_free_mailbox_slots); // blockiert, wenn Mailbox voll
+
+    //In Ziel-MailboxTypeManagement einhängen
+
     sem_wait(&mb->mailbox_mutex);
-    if (mb->tail < 0) {
-        // erste Nachricht
-        mb->head = mb->tail = idx;
-    } else {
-        slots[mb->tail].next = idx;
-        mb->tail = idx;
-    }
+
+    // Ringpuffer schreiben
+    mb->slot_indices[mb->in] = idx;
+    mb->in = (mb->in + 1) % OSMP_MAX_SLOTS;
+
     sem_post(&mb->mailbox_mutex);
     sem_post(&mb->sem_msg_available);
+
 
 
     char msg[128];
@@ -253,28 +255,21 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
 
     // Pointer auf Shared Memory
     pid_t *pid_map = osmp_shared->pid_map;
-    Mailbox *mailboxes = (Mailbox *) (pid_map + N);
+    MailboxTypeManagement *mailboxes = (MailboxTypeManagement *) (pid_map + N);
     FreeSlotQueue *fsq = (FreeSlotQueue *) (mailboxes + N);
-    MessageSlot *slots = (MessageSlot *) (fsq + 1);
+    MessageType *slots = (MessageType *) (fsq + 1);
 
-    Mailbox *mb = &mailboxes[osmp_rank];
+    MailboxTypeManagement *mb = &mailboxes[osmp_rank];
 
     sem_wait(&mb->sem_msg_available);
     sem_wait(&mb->mailbox_mutex);
 
-    int idx = mb->head;
-    if (idx < 0) {
-        // sollte nie passieren, da sem_msg_available > 0
-        sem_post(&mb->mailbox_mutex);
-        return OSMP_FAILURE;
-    }
-    mb->head = slots[idx].next;
-    if (mb->head < 0) {
-        // Liste nun leer
-        mb->tail = -1;
-    }
+    int idx = mb->slot_indices[mb->out];
+    mb->out = (mb->out + 1) % OSMP_MAX_SLOTS;
+
     sem_post(&mb->mailbox_mutex);
     sem_post(&mb->sem_free_mailbox_slots);
+
 
     const size_t payload_len = slots[idx].payload_length;
     const size_t nbytes = payload_len < max_bytes ? payload_len : max_bytes;
@@ -284,10 +279,10 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
     *len = (int) nbytes;
 
     //Slot-Index zurück in die FreeSlotQueue
-    sem_wait(&fsq->free_slots_mutex);
+    pthread_mutex_lock(&fsq->free_slots_mutex);
     fsq->free_slots[fsq->tail] = idx;
     fsq->tail = (uint16_t) (((int) fsq->tail + 1) % OSMP_MAX_SLOTS);
-    sem_post(&fsq->free_slots_mutex);
+    pthread_mutex_unlock(&fsq->free_slots_mutex);
     sem_post(&fsq->sem_slots);
 
     char msg[128];
@@ -320,6 +315,8 @@ int OSMP_Finalize(void) {
 
 int OSMP_Barrier(void) {
     // TODO: Implementieren Sie hier die Funktionalität der Funktion.
+    // neuer af rsoll nicht barrier blockieren
+
     return OSMP_FAILURE;
 }
 
