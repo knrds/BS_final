@@ -173,12 +173,6 @@ int OSMP_Rank(int *rank) {
 
 
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
-    UNUSED(buf);
-    UNUSED(count);
-    UNUSED(datatype);
-    UNUSED(dest);
-
-
     const int N = osmp_shared->process_count;
     if (dest < 0 || dest >= N || count < 0)
         return OSMP_FAILURE;
@@ -240,11 +234,6 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
               int *len) {
-    UNUSED(buf);
-    UNUSED(count);
-    UNUSED(datatype);
-    UNUSED(source);
-    UNUSED(len);
 
     if (!buf || !source || !len || count < 0)
         return OSMP_FAILURE;

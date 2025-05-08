@@ -2,7 +2,7 @@
 // Created by konrad_laptop on 07.05.25.
 //
 // Test: Broadcast von Rang 0 an alle anderen Prozesse
-// Jeder Empfänger gibt die Nachricht aus, die er erhalten hat
+// Jeder Empfänger gibt die Nachricht aus, die er erhalten hat und prüft den Inhalt
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,9 +27,10 @@ int main(int argc, char **argv) {
     OSMP_Rank(&rank);
     OSMP_Size(&size);
 
+    snprintf(msg, MAX_MSG_LEN, "[Broadcast] Hello from process 0");
+
     if (rank == 0) {
         // Rang 0 sendet dieselbe Nachricht an alle anderen Prozesse
-        snprintf(msg, MAX_MSG_LEN, "[Broadcast] Hello from process 0");
         for (int dest = 1; dest < size; dest++) {
             rv = OSMP_Send(msg, (int)(strlen(msg) + 1), OSMP_UNSIGNED_CHAR, dest);
             if (rv != OSMP_SUCCESS) {
@@ -45,6 +46,11 @@ int main(int argc, char **argv) {
             fprintf(stderr, "[ERROR] Recv at rank %d failed\n", rank);
         } else {
             printf("[RECV] Rank %d got %d bytes from %d: %s\n", rank, len, source, recv_buf);
+            if (strcmp(recv_buf, msg) == 0) {
+                printf("[OK] Rank %d received correct broadcast message.\n", rank);
+            } else {
+                printf("[FEHLER] Rank %d received wrong message!\n", rank);
+            }
         }
     }
 

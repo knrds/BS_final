@@ -1,7 +1,6 @@
 //
 // Created by konrad_laptop on 07.05.25.
 //
-//
 // Testprogramm für mehrere Sender und Empfänger
 // Jeder Prozess sendet mehrere Nachrichten an den nächsten Prozess im Ring
 // und empfängt dieselbe Anzahl von seinem Vorgänger
@@ -34,6 +33,7 @@ int main(int argc, char **argv) {
 
     // Ziel: sende an nächsten Prozess im Ring
     int target = (rank + 1) % size;
+    int expected_sender = (rank - 1 + size) % size;
 
     // Senden von NUM_MESSAGES Nachrichten an Zielprozess
     for (int i = 0; i < NUM_MESSAGES; i++) {
@@ -54,7 +54,15 @@ int main(int argc, char **argv) {
         if (rv != OSMP_SUCCESS) {
             fprintf(stderr, "[ERROR] Recv %d failed at rank %d\n", i, rank);
         } else {
+            char expected[MAX_MSG_LEN];
+            snprintf(expected, MAX_MSG_LEN, "[msg %d] Hello from %d to %d", i, expected_sender, rank);
+
             printf("[RECV] Rank %d got %d bytes from %d: %s\n", rank, len, source, recv_buf);
+            if (strcmp(recv_buf, expected) == 0) {
+                printf("[OK] Nachricht korrekt empfangen.\n");
+            } else {
+                printf("[FEHLER] Nachricht falsch! Erwartet: %s\n", expected);
+            }
         }
     }
 
