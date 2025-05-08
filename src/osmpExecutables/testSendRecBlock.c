@@ -52,7 +52,16 @@ int main(int argc, char **argv) {
             if (rv != OSMP_SUCCESS) {
                 fprintf(stderr, "[ERROR] Recv %d failed at rank 0\n", i);
             } else {
+                char expected[MAX_MSG_LEN];
+                int local_index = i % NUM_MESSAGES; // Annäherung – genauer wäre Sender-Tracking
+                snprintf(expected, MAX_MSG_LEN, "[Send %d] Hello from %d", local_index, source);
+
                 printf("[RECV] Rank 0 got %d bytes from %d: %s\n", len, source, buf);
+                if (strcmp(buf, expected) == 0) {
+                    printf("[OK] Nachricht von %d korrekt: %s\n", source, buf);
+                } else {
+                    printf("[FEHLER] Nachricht von %d unerwartet! Erwartet: %s\n", source, expected);
+                }
             }
         }
     }

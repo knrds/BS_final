@@ -1,9 +1,8 @@
 //
-// Created by konrad_laptop on 07.05.25.
+// Test: Race Condition Simulation mit Inhaltsprüfung
+// Jeder Prozess sendet parallel 5 Nachrichten an den nächsten im Ring
+// und prüft, ob die empfangenen Nachrichten korrekt formatiert sind.
 //
-// Test: Race Condition Simulation
-// Mehrere Prozesse senden gleichzeitig und empfangen gleichzeitig
-// Ziel: Synchronisation und Slotverwaltung auf Robustheit testen
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,11 +17,9 @@
 
 void *send_loop(void *arg) {
     (void)arg;
-    int rank;
+    int rank, size;
     OSMP_Rank(&rank);
-    int size;
     OSMP_Size(&size);
-
 
     for (int i = 0; i < NUM_SENDS; i++) {
         char msg[MAX_MSG_LEN];
@@ -30,9 +27,10 @@ void *send_loop(void *arg) {
         int len = (int)(strlen(msg) + 1);
         int dest = (rank + 1) % size;
 
-
         if (OSMP_Send(msg, len, OSMP_UNSIGNED_CHAR, dest) != OSMP_SUCCESS) {
             fprintf(stderr, "[ERROR] Send %d from %d failed\n", i, rank);
+        } else {
+            printf("[SEND] %d → %d: %s\n", rank, dest, msg);
         }
     }
     return NULL;
@@ -47,6 +45,17 @@ void *recv_loop(void *arg) {
     for (int i = 0; i < NUM_RECVS; i++) {
         if (OSMP_Recv(buf, MAX_MSG_LEN, OSMP_UNSIGNED_CHAR, &source, &len) == OSMP_SUCCESS) {
             printf("[RECV] %d <- %d: %s\n", rank, source, buf);
+
+            // Erwartete Nachricht erzeugen
+            char expected[MAX_MSG_LEN];
+            snprintf(expected, MAX_MSG_LEN, "[SEND %d] from %d", i, source);
+
+            if (strcmp(buf, expected) == 0) {
+                printf("[OK] Nachricht korrekt empfangen\n");
+            } else {
+                printf("[FEHLER] Nachricht unerwartet! Erwartet: %s\n", expected);
+            }
+
         } else {
             fprintf(stderr, "[ERROR] Recv %d at rank %d failed\n", i, rank);
         }
