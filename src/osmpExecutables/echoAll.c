@@ -10,6 +10,7 @@ int main(int argc, char *argv[]) {
     int rv;
     int size, rank;
 
+
     // Initialisiere OSMP
     rv = OSMP_Init(&argc, &argv);
     if (rv != OSMP_SUCCESS) {

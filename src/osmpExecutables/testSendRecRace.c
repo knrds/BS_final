@@ -73,6 +73,7 @@ int main(int argc, char **argv) {
     pthread_create(&sender, NULL, send_loop, NULL);
     pthread_create(&receiver, NULL, recv_loop, NULL);
 
+
     pthread_join(sender, NULL);
     pthread_join(receiver, NULL);
 

@@ -24,6 +24,7 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
+
     OSMP_Rank(&rank);
     OSMP_Size(&size);
 

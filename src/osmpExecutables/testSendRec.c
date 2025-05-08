@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
             fprintf(stderr, "OSMP_Send failed\n");
             return EXIT_FAILURE;
         }
+
     } else {
         // Empfänger
         rv = OSMP_Recv(bufout, 1024, OSMP_UNSIGNED_CHAR, &source, &len);

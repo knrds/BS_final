@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
                 printf("[SEND] Rank %d → %d: %s\n", rank, RECEIVER_RANK, msg);
             }
         }
+
     } else {
         // Empfänger wartet, damit Sender ggf. blockieren
         printf("[RECV] Rank 0 sleeping for 5 seconds...\n");

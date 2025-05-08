@@ -427,6 +427,7 @@ int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
         fprintf(stderr, "OSMP_Log: Error writing to log file\n");
         return OSMP_FAILURE;
     }
+
     fprintf(file, "%s", log_line);
     fclose(file);
     sem_post(&osmp_shared->log_mutex);

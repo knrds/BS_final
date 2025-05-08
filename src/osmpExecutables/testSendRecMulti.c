@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
     int target = (rank + 1) % size;
     int expected_sender = (rank - 1 + size) % size;
 
+
     // Senden von NUM_MESSAGES Nachrichten an Zielprozess
     for (int i = 0; i < NUM_MESSAGES; i++) {
         snprintf(send_buf, MAX_MSG_LEN, "[msg %d] Hello from %d to %d", i, rank, target);

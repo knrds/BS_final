@@ -80,6 +80,7 @@ int setup_shared_memory(int process_count) {
     // Initialisierung
     sem_init(&osmp_shared->log_mutex, 1, 1); // 1 = für Shared Memory
 
+
     // Mailboxes anschließen
     MailboxTypeManagement *mailboxes =
             (MailboxTypeManagement *) (pid_map + process_count);
@@ -242,24 +243,6 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-
-    // Clearing Semaphores
-    const int N = osmp_shared->process_count;
-    Mailbox *mailboxes =
-            (Mailbox *) (osmp_shared->pid_map + N);
-    FreeSlotQueue *fsq =
-            (FreeSlotQueue *) (mailboxes + N);
-
-    sem_destroy(&fsq->sem_slots);
-    sem_destroy(&fsq->free_slots_mutex);
-
-    for (int i = 0; i < N; i++) {
-        sem_destroy(&mailboxes[i].sem_free_mailbox_slots);
-        sem_destroy(&mailboxes[i].sem_msg_available);
-        sem_destroy(&mailboxes[i].mailbox_mutex);
-    }
-
-    sem_destroy(&osmp_shared->log_mutex);
 
     shm_unlink(SHM_NAME);
 

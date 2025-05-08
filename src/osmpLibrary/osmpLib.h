@@ -28,6 +28,7 @@ typedef struct {
     int out; // index of last  MessageType in this mailbox (–1 if empty)
 } MailboxTypeManagement;
 
+
 //Eine nachricht
 typedef struct {
     OSMP_Datatype datatype; // OSMP_UNSIGNED_CHAR...

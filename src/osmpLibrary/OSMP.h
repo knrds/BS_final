@@ -9,6 +9,7 @@
 #ifndef __OSMP_H__
 #define __OSMP_H__
 
+
 /**
  * Alle OSMP-Funktionen liefern im Erfolgsfall OSMP_SUCCESS als Rückgabewert.
  * Weitere Rückgabewerte können mit Begründung (und Dokumentation!) definiert
