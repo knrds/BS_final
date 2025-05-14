@@ -87,8 +87,18 @@ int setup_shared_memory(int process_count) {
 
     for (int i = 0; i < process_count; i++) {
         sem_init(&mailboxes[i].sem_free_mailbox_slots, 1, OSMP_MAX_MESSAGES_PROC); // freie Plätze
-        sem_init(&mailboxes[i].sem_msg_available, 1, 0);                            // empfangbare Nachrichten
-        sem_init(&mailboxes[i].mailbox_mutex, 1, 1);                                // Zugriffsschutz (binär)
+        sem_init(&mailboxes[i].sem_msg_available, 1, 0);
+        // empfangbare Nachrichten
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        // z.B. Fehler-Checking einschalten
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+        // oder: für process-shared
+        // pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+
+        pthread_mutex_init(&mailboxes[i].mailbox_mutex, &attr);
+        pthread_mutexattr_destroy(&attr);
+                             // Zugriffsschutz (binär)
 
         mailboxes[i].in = 0;   // oder: in_fsq
         mailboxes[i].out = 0;  // oder: out_fsq

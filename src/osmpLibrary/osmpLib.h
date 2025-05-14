@@ -22,7 +22,7 @@ int OSMP_SetSharedMemory(void *ptr);
 typedef struct {
     sem_t sem_free_mailbox_slots; // how many messages you may still enqueue (≤ OSMP_MAX_MESSAGES_PROC)
     sem_t sem_msg_available; // how many messages are currently enqueued
-    sem_t mailbox_mutex; // protects in/out
+    pthread_mutex_t mailbox_mutex; // protects in/out
     int slot_indices[OSMP_MAX_SLOTS];
     int in; // index of first MessageType in this mailbox (–1 if empty)
     int out; // index of last  MessageType in this mailbox (–1 if empty)

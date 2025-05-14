@@ -215,13 +215,13 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
     //In Ziel-MailboxTypeManagement einhängen
 
-    sem_wait(&mb->mailbox_mutex);
+    pthread_mutex_lock(&mb->mailbox_mutex);
 
     // Ringpuffer schreiben
     mb->slot_indices[mb->in] = idx;
     mb->in = (mb->in + 1) % OSMP_MAX_SLOTS;
 
-    sem_post(&mb->mailbox_mutex);
+    pthread_mutex_unlock(&mb->mailbox_mutex);
     sem_post(&mb->sem_msg_available);
 
 
@@ -262,12 +262,12 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
     MailboxTypeManagement *mb = &mailboxes[osmp_rank];
 
     sem_wait(&mb->sem_msg_available);
-    sem_wait(&mb->mailbox_mutex);
+    pthread_mutex_lock(&mb->mailbox_mutex);
 
     int idx = mb->slot_indices[mb->out];
     mb->out = (mb->out + 1) % OSMP_MAX_SLOTS;
 
-    sem_post(&mb->mailbox_mutex);
+    pthread_mutex_unlock(&mb->mailbox_mutex);
     sem_post(&mb->sem_free_mailbox_slots);
 
 
