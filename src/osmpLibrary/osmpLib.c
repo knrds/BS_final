@@ -21,6 +21,10 @@
 static osmp_shared_info_t *osmp_shared = NULL;
 static int osmp_rank = -1;
 
+MailboxTypeManagement *mailboxes;
+FreeSlotQueue *fsq;
+MessageType *slots;
+
 int OSMP_GetMaxPayloadLength(void) {
     // TODO: Implementieren Sie hier die Funktionalität der Funktion.
     return OSMP_MAX_PAYLOAD_LENGTH;
@@ -91,6 +95,16 @@ int OSMP_Init(const int *argc, char ***argv) {
         fprintf(stderr, "OSMP_Init: PID %d not found in pid_map\n", my_pid);
         return OSMP_FAILURE;
     }
+
+
+    //pointer auf Shared MemoryÜ
+    const int N = osmp_shared->process_count;
+    mailboxes =
+            (MailboxTypeManagement *) (osmp_shared->pid_map + N);
+    fsq =
+            (FreeSlotQueue *) (mailboxes + N);
+    slots =
+            (MessageType *) (fsq + 1);
 
     OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_Init() called");
     return OSMP_SUCCESS;
@@ -187,13 +201,6 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
     const size_t payload_bytes = (size_t) count * elem_size;
 
-    //pointer auf Shared MemoryÜ
-    MailboxTypeManagement *mailboxes =
-            (MailboxTypeManagement *) (osmp_shared->pid_map + N);
-    FreeSlotQueue *fsq =
-            (FreeSlotQueue *) (mailboxes + N);
-    MessageType *slots =
-            (MessageType *) (fsq + 1);
 
     //Race Condition vermeiden
     MailboxTypeManagement *mb = &mailboxes[dest];
@@ -252,13 +259,6 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
 
     //Maximale Kopier-Bytezahl prüfen (Overflow / Puffer überschreiben)
     size_t max_bytes = (size_t) count * elem_size;
-
-    // Pointer auf Shared Memory
-    pid_t *pid_map = osmp_shared->pid_map;
-    MailboxTypeManagement *mailboxes = (MailboxTypeManagement *) (pid_map + N);
-    FreeSlotQueue *fsq = (FreeSlotQueue *) (mailboxes + N);
-    MessageType *slots = (MessageType *) (fsq + 1);
-
     MailboxTypeManagement *mb = &mailboxes[osmp_rank];
 
     sem_wait(&mb->sem_msg_available);
