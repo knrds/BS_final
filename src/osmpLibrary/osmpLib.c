@@ -305,6 +305,24 @@ int OSMP_Finalize(void) {
     snprintf(msg, sizeof(msg), "OSMP_Finalize: Process %d finalized and released", osmp_rank);
     OSMP_Log(OSMP_LOG_BIB_CALL, msg);
 
+    // Nur der Rank 0 zerstört die Synchronisationsobjekte
+    if (osmp_rank == 0) {
+        // FreeSlotQueue
+        pthread_mutex_destroy(&fsq->free_slots_mutex);
+        sem_destroy(&fsq->sem_slots);
+
+        // Mailboxes
+        for (int i = 0; i < osmp_shared->process_count; ++i) {
+            sem_destroy(&mailboxes[i].sem_free_mailbox_slots);
+            sem_destroy(&mailboxes[i].sem_msg_available);
+            pthread_mutex_destroy(&mailboxes[i].mailbox_mutex);
+        }
+
+        // Log-Mutex
+        sem_destroy(&osmp_shared->log_mutex);
+    }
+
+    // Shared Memory unmap
     if (munmap(osmp_shared, SHM_SIZE) == -1) {
         perror("munmap failed");
         return OSMP_FAILURE;
