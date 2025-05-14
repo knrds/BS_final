@@ -90,8 +90,8 @@ int setup_shared_memory(int process_count) {
         sem_init(&mailboxes[i].sem_msg_available, 1, 0);                            // empfangbare Nachrichten
         sem_init(&mailboxes[i].mailbox_mutex, 1, 1);                                // Zugriffsschutz (binär)
 
-        mailboxes[i].in = 0;   // oder: head
-        mailboxes[i].out = 0;  // oder: tail
+        mailboxes[i].in = 0;   // oder: in_fsq
+        mailboxes[i].out = 0;  // oder: out_fsq
 
         for (int j = 0; j < OSMP_MAX_SLOTS; j++) {
             mailboxes[i].slot_indices[j] = -1; // optional zur Debughilfe
@@ -101,7 +101,7 @@ int setup_shared_memory(int process_count) {
     // FreeSlotQueue anschließen
     FreeSlotQueue *fsq =
             (FreeSlotQueue *) (mailboxes + process_count);
-    fsq->head = fsq->tail = 0;
+    fsq->in_fsq = fsq->out_fsq = 0;
     sem_init(&fsq->sem_slots, 1, OSMP_MAX_SLOTS);
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
@@ -109,7 +109,7 @@ int setup_shared_memory(int process_count) {
     pthread_mutex_init(&fsq->free_slots_mutex, &attr);
     pthread_mutexattr_destroy(&attr);
     for (int i = 0; i < OSMP_MAX_SLOTS; i++)
-        fsq->free_slots[fsq->tail++] = i;
+        fsq->free_slots[fsq->out_fsq++] = i;
 
 
 

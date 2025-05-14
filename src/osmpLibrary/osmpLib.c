@@ -201,8 +201,8 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
     sem_wait(&fsq->sem_slots);
     pthread_mutex_lock(&fsq->free_slots_mutex);
-    const int idx = fsq->free_slots[fsq->head];
-    fsq->head = (uint16_t) (((int) fsq->head + 1) % OSMP_MAX_SLOTS);
+    const int idx = fsq->free_slots[fsq->in_fsq];
+    fsq->in_fsq = (uint16_t) (((int) fsq->in_fsq + 1) % OSMP_MAX_SLOTS);
     pthread_mutex_unlock(&fsq->free_slots_mutex);
 
     //Message Slot belegen
@@ -280,8 +280,8 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
 
     //Slot-Index zurück in die FreeSlotQueue
     pthread_mutex_lock(&fsq->free_slots_mutex);
-    fsq->free_slots[fsq->tail] = idx;
-    fsq->tail = (uint16_t) (((int) fsq->tail + 1) % OSMP_MAX_SLOTS);
+    fsq->free_slots[fsq->out_fsq] = idx;
+    fsq->out_fsq = (uint16_t) (((int) fsq->out_fsq + 1) % OSMP_MAX_SLOTS);
     pthread_mutex_unlock(&fsq->free_slots_mutex);
     sem_post(&fsq->sem_slots);
 

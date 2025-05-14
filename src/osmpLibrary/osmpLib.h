@@ -40,7 +40,7 @@ typedef struct {
 
 //Freie Slot Queue
 typedef struct {
-    uint16_t head, tail; // oldest and newest msg
+    uint16_t in_fsq, out_fsq; // oldest and newest msg
     sem_t sem_slots; // how many slots are free in general (≤ OSMP_MAX_SLOTS)
     pthread_mutex_t free_slots_mutex; // protects the in/out
     int free_slots[OSMP_MAX_SLOTS]; // SlotIds
