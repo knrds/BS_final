@@ -28,7 +28,6 @@ typedef struct {
     int out; // index of last  MessageType in this mailbox (–1 if empty)
 } MailboxTypeManagement;
 
-
 //Eine nachricht
 typedef struct {
     OSMP_Datatype datatype; // OSMP_UNSIGNED_CHAR...
@@ -53,6 +52,7 @@ typedef struct {
     sem_t log_mutex;
     pid_t pid_map[]; //TODO Alle variablen / dynamischen parmeter in in eine Struktur
 } osmp_shared_info_t;
+
 
 #include "OSMP.h"
 

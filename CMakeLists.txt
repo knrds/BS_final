@@ -24,6 +24,8 @@ set(LIBRARY_SRC_FILES
         src/osmpLibrary/osmpLib.c
         src/osmpLibrary/osmpLib.h
         src/osmpLibrary/OSMP.h
+        src/osmpLibrary/barrier.h
+        src/osmpLibrary/barrier.c
 )
 add_library(libosmp STATIC ${LIBRARY_SRC_FILES})
 
