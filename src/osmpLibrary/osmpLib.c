@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <semaphore.h>
 
@@ -68,7 +69,8 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-    void *ptr = mmap(NULL, (size_t) shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0); //TODO Shared memory pointer statt ptr*
+    void *ptr = mmap(NULL, (size_t) shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    //TODO Shared memory pointer statt ptr*
     close(shm_fd);
     if (ptr == MAP_FAILED) {
         perror("mmap failed");
@@ -232,7 +234,6 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     sem_post(&mb->sem_msg_available);
 
 
-
     char msg[128];
     snprintf(msg, sizeof(msg), "OSMP_Send: Process %d sent %lu bytes to process %d",
              osmp_rank, payload_bytes, dest);
@@ -243,7 +244,6 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
               int *len) {
-
     if (!buf || !source || !len || count < 0)
         return OSMP_FAILURE;
     const int N = osmp_shared->process_count;
@@ -332,8 +332,20 @@ int OSMP_Finalize(void) {
 }
 
 int OSMP_Barrier(void) {
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    // neuer af rsoll nicht barrier blockieren
+    if (!osmp_shared ||
+        osmp_shared->barrier.valid != BARRIER_VALID)
+        return OSMP_FAILURE;
+
+    char msg[128];
+    snprintf(msg, sizeof(msg), "OSMP_Barrier: Process %d waiting at barrier", osmp_rank);
+    OSMP_Log(OSMP_LOG_BIB_CALL, msg);
+
+    if (barrier_wait(&osmp_shared->barrier) == 0) {
+        char msg[128];
+        snprintf(msg, sizeof(msg), "OSMP_Barrier: Process %d passed the barrier", osmp_rank);
+        OSMP_Log(OSMP_LOG_BIB_CALL, msg);
+        return OSMP_SUCCESS;
+    }
 
     return OSMP_FAILURE;
 }
@@ -341,16 +353,51 @@ int OSMP_Barrier(void) {
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
                 void *recvbuf, int recvcount, OSMP_Datatype recvtype,
                 int root) {
-    UNUSED(sendbuf);
-    UNUSED(sendcount);
-    UNUSED(sendtype);
-    UNUSED(recvbuf);
-    UNUSED(recvcount);
-    UNUSED(recvtype);
-    UNUSED(root);
+    int rank, size, rv;
 
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+    rv = OSMP_Rank(&rank);
+    if (rv == OSMP_FAILURE) return OSMP_FAILURE;
+    rv = OSMP_Size(&size);
+    if (rv == OSMP_FAILURE) return OSMP_FAILURE;
+
+    if (root < 0 || root >= size)               return OSMP_FAILURE;
+
+    unsigned int send_sz, recv_sz;
+    if (OSMP_SizeOf(sendtype, &send_sz) != OSMP_SUCCESS) return OSMP_FAILURE;
+    if (OSMP_SizeOf(recvtype, &recv_sz) != OSMP_SUCCESS) return OSMP_FAILURE;
+
+    // Nicht-Root: senden und beenden
+    if (rank != root) {
+        return OSMP_Send(sendbuf, sendcount, sendtype, root) == OSMP_SUCCESS
+             ? OSMP_SUCCESS : OSMP_FAILURE;
+    }
+
+    //Eigenen Beitrag kopieren
+    if (!recvbuf) return OSMP_FAILURE;
+    size_t own_bytes = (size_t)sendcount * send_sz;
+    size_t max_bytes = (size_t)recvcount * recv_sz;
+    if (own_bytes > max_bytes) own_bytes = max_bytes;
+    size_t off0 = (size_t)root * (size_t)recvcount * recv_sz;
+    memcpy((char*)recvbuf + off0, sendbuf, own_bytes);
+
+    //Rest empfangen via Zwischenspeicher
+    size_t tmpbuf_size = (size_t)recvcount * recv_sz;
+    char *tmpbuf = malloc(tmpbuf_size);
+    if (!tmpbuf) return OSMP_FAILURE;
+
+    for (int i = 0; i < size-1; ++i) {
+        int src, len_bytes;
+        rv = OSMP_Recv(tmpbuf, recvcount, recvtype, &src, &len_bytes);
+        if (rv == OSMP_FAILURE) {
+            free(tmpbuf);
+            return OSMP_FAILURE;
+        }
+        size_t offset = (size_t)src * (size_t)recvcount * recv_sz;
+        memcpy((char*)recvbuf + offset, tmpbuf, (size_t)len_bytes);
+    }
+
+    free(tmpbuf);
+    return OSMP_SUCCESS;
 }
 
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest,

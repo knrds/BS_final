@@ -3,17 +3,18 @@
 //
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>     // ✅ für ftruncate, fork, getopt, etc.
-#include <string.h>     // ✅ für memset, snprintf
-#include <fcntl.h>      // ✅ für O_CREAT, O_RDWR, shm_open
-#include <sys/mman.h>   // ✅ für mmap
-#include <sys/stat.h>   // ✅ für Mode-Typen (0666 etc.)
-#include <sys/types.h>  // ✅ für pid_t
-#include <sys/wait.h>   // ✅ für waitpid
-#include <time.h>       // ✅ für time()
-#include <getopt.h>     // ✅ optional (eigentlich reicht <unistd.h> für getopt)
+#include <unistd.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <getopt.h>
 
 #include "osmpRun.h"
+#include "../osmpLibrary/barrier.h"
 
 #include <pthread.h>
 
@@ -98,10 +99,10 @@ int setup_shared_memory(int process_count) {
 
         pthread_mutex_init(&mailboxes[i].mailbox_mutex, &attr);
         pthread_mutexattr_destroy(&attr);
-                             // Zugriffsschutz (binär)
+        // Zugriffsschutz (binär)
 
-        mailboxes[i].in = 0;   // oder: in_fsq
-        mailboxes[i].out = 0;  // oder: out_fsq
+        mailboxes[i].in = 0; // oder: in_fsq
+        mailboxes[i].out = 0; // oder: out_fsq
 
         for (int j = 0; j < OSMP_MAX_SLOTS; j++) {
             mailboxes[i].slot_indices[j] = -1; // optional zur Debughilfe
@@ -121,7 +122,11 @@ int setup_shared_memory(int process_count) {
     for (int i = 0; i < OSMP_MAX_SLOTS; i++)
         fsq->free_slots[fsq->out_fsq++] = i;
 
-
+    if(barrier_init(&osmp_shared->barrier, process_count) != 0) {
+        perror("Barrier initialization failed");
+        close(fd);
+        return OSMP_FAILURE;
+    }
 
     close(fd);
     return 0;

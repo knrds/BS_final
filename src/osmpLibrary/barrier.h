@@ -9,6 +9,8 @@
 #ifndef BARRIER_H
 #define BARRIER_H
 
+#define BARRIER_VALID 0xBEEF
+
 typedef struct {
     pthread_mutex_t mutex; /* Zugriffskontrolle */
     pthread_cond_t convar; /* Warten auf Barriere */

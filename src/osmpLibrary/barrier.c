@@ -6,18 +6,25 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#define BARRIER_VALID 0xBEEF
 
 int barrier_init(barrier_t *barrier, int count) {
     if (barrier == NULL || count <= 0)
         return EINVAL;
-    int s;
-    if ((s = pthread_mutex_init(&barrier->mutex, NULL)) != 0)
-        return s;
-    if ((s = pthread_cond_init(&barrier->convar, NULL)) != 0) {
-        pthread_mutex_destroy(&barrier->mutex);
-        return s;
-    }
+
+    // Attribute für prozess-übergreifend
+    pthread_mutexattr_t mattr;
+    pthread_condattr_t cattr;
+
+    // Initialisiere Attribute
+    pthread_mutexattr_init(&mattr);
+    pthread_mutexattr_setpshared(&mattr, PTHREAD_PROCESS_SHARED);
+    pthread_condattr_init(&cattr);
+    pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED);
+
+    // Barrier initialisieren
+    pthread_mutex_init(&barrier->mutex, &mattr);
+    pthread_cond_init(&barrier->convar, &cattr);
+
     barrier->threshold = count;
     barrier->counter = count;
     barrier->cycle = 0;

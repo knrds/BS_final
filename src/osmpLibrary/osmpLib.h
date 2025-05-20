@@ -13,6 +13,7 @@
 #include <semaphore.h>
 #include <stdint.h>
 #include "OSMP.h"
+#include "barrier.h"
 
 #define SHM_NAME "/osmp_shm"
 #define SHM_SIZE sizeof(osmp_shared_info_t) // Größe des Shared Memory
@@ -50,6 +51,7 @@ typedef struct {
     char logfile_path[256];
     int verbosity_level;
     sem_t log_mutex;
+    barrier_t barrier;
     pid_t pid_map[]; //TODO Alle variablen / dynamischen parmeter in in eine Struktur
 } osmp_shared_info_t;
 

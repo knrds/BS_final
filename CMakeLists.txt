@@ -53,6 +53,14 @@ set(EXECUTABLES
         SOURCES src/osmpExecutables/testSendRecBlock.c
         NAME testSendRecRace
         SOURCES src/osmpExecutables/testSendRecRace.c
+        NAME testBarrier
+        SOURCES src/osmpExecutables/testBarrier.c
+        NAME testBarrierMulti
+        SOURCES src/osmpExecutables/testBarrierMulti.c
+        NAME testGather
+        SOURCES src/osmpExecutables/testGather.c
+        NAME testGatherABC
+        SOURCES src/osmpExecutables/testGatherABC.c
         # Neue Executables hier einfügen
         # NAME <name>
         # SOURCES <source1> <source2> ...
