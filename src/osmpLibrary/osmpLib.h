@@ -52,7 +52,7 @@ typedef struct {
     int verbosity_level;
     sem_t log_mutex;
     barrier_t barrier;
-    pid_t pid_map[]; //TODO Alle variablen / dynamischen parmeter in in eine Struktur
+    pid_t pid_map[];
 } osmp_shared_info_t;
 
 

@@ -70,7 +70,7 @@ int OSMP_Init(const int *argc, char ***argv) {
     }
 
     void *ptr = mmap(NULL, (size_t) shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    //TODO Shared memory pointer statt ptr*
+
     close(shm_fd);
     if (ptr == MAP_FAILED) {
         perror("mmap failed");
@@ -362,7 +362,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
 
     if (root < 0 || root >= size)               return OSMP_FAILURE;
 
-    unsigned int send_sz, recv_sz;
+    unsigned int send_sz, recv_sz; // Größe der Datentypen wird geprüft
     if (OSMP_SizeOf(sendtype, &send_sz) != OSMP_SUCCESS) return OSMP_FAILURE;
     if (OSMP_SizeOf(recvtype, &recv_sz) != OSMP_SUCCESS) return OSMP_FAILURE;
 
@@ -377,11 +377,11 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
     size_t own_bytes = (size_t)sendcount * send_sz;
     size_t max_bytes = (size_t)recvcount * recv_sz;
     if (own_bytes > max_bytes) own_bytes = max_bytes;
-    size_t off0 = (size_t)root * (size_t)recvcount * recv_sz;
-    memcpy((char*)recvbuf + off0, sendbuf, own_bytes);
+    size_t off0 = (size_t)root * (size_t)recvcount * recv_sz;  // Offset für den eigenen Beitrag
+    memcpy((char*)recvbuf + off0, sendbuf, own_bytes);  // schreibt die eigene Nachricht in den Puffer an der stelle mit Offset
 
     //Rest empfangen via Zwischenspeicher
-    size_t tmpbuf_size = (size_t)recvcount * recv_sz;
+    size_t tmpbuf_size = (size_t)recvcount * recv_sz;  // Zwischenspeicher für die empfangenen Nachrichten
     char *tmpbuf = malloc(tmpbuf_size);
     if (!tmpbuf) return OSMP_FAILURE;
 
@@ -392,7 +392,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
             free(tmpbuf);
             return OSMP_FAILURE;
         }
-        size_t offset = (size_t)src * (size_t)recvcount * recv_sz;
+        size_t offset = (size_t)src * (size_t)recvcount * recv_sz;  // Offset für den eigenen Beitrag Src mal recvcount mal recv_sz
         memcpy((char*)recvbuf + offset, tmpbuf, (size_t)len_bytes);
     }
 
