@@ -331,6 +331,19 @@ int OSMP_Finalize(void) {
     return OSMP_GetSucess();
 }
 
+/**
+ * @brief Synchronisationsfunktion für alle OSMP-Prozesse.
+ *
+ * Diese Funktion blockiert den aufrufenden Prozess, bis alle anderen
+ * OSMP-Prozesse ebenfalls OSMP_Barrier() aufgerufen haben.
+ * Sobald alle beteiligt sind, werden sie gleichzeitig freigegeben.
+ *
+ * Intern wird eine gemeinsame barrier_t-Struktur im Shared Memory verwendet,
+ * die mithilfe von pthread_mutex und pthread_cond Variablen implementiert ist.
+ *
+ * @return OSMP_SUCCESS bei erfolgreicher Synchronisation,
+ *         OSMP_FAILURE bei Fehler (z. B. ungültige Barriere-Struktur)
+ */
 int OSMP_Barrier(void) {
     if (!osmp_shared ||
         osmp_shared->barrier.valid != BARRIER_VALID)
@@ -350,6 +363,28 @@ int OSMP_Barrier(void) {
     return OSMP_FAILURE;
 }
 
+/**
+ * @brief Kollektive Kommunikationsfunktion zum Sammeln von Daten.
+ *
+ * Jeder OSMP-Prozess ruft diese Funktion auf, um Daten an einen gemeinsamen
+ * Root-Prozess zu senden. Der Root sammelt die Daten aller Prozesse
+ * (einschließlich seiner eigenen) in einem zusammenhängenden Empfangspuffer.
+ *
+ * Die Daten werden dort nach Rang sortiert gespeichert:
+ * - Rang 0 → erster Block
+ * - Rang 1 → zweiter Block
+ * - ...
+ *
+ * @param sendbuf    Zeiger auf den lokalen Sendepuffer
+ * @param sendcount  Anzahl der zu sendenden Elemente
+ * @param sendtype   Datentyp der zu sendenden Elemente
+ * @param recvbuf    Zeiger auf Empfangspuffer (nur Root)
+ * @param recvcount  Anzahl der zu empfangenden Elemente pro Prozess
+ * @param recvtype   Datentyp der empfangenen Elemente
+ * @param root       Rang des Prozesses, der alle Daten empfängt
+ *
+ * @return OSMP_SUCCESS bei Erfolg, OSMP_FAILURE bei Fehler
+ */
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
                 void *recvbuf, int recvcount, OSMP_Datatype recvtype,
                 int root) {
