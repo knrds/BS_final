@@ -12,10 +12,10 @@
 #define BARRIER_VALID 0xBEEF
 
 typedef struct {
-    pthread_mutex_t mutex; /* Zugriffskontrolle */
-    pthread_cond_t convar; /* Warten auf Barriere */
+    pthread_mutex_t mutex; /* Zugriffskontrolle beim verändern der Variablen */
+    pthread_cond_t convar; /* Warten an der Barriere */
     int valid; /* gesetzt, wenn Barriere initalisiert */
-    int threshold; /* Anzahl der erwarteten Threads */
+    int threshold; /* Anzahl der gesamten erwarteten Threads */
     int counter; /* die noch fehlenden Threads */
     int cycle; /* Flag ob Barriere aktiv ist - Verhindert Durchlaufen von Prozessen aus früheren Durchläufen */
 } barrier_t;

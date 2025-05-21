@@ -214,6 +214,11 @@ int main(int argc, char *argv[]) {
     pid_t pid_children[process_count]; // Array zur Speicherung der Kinderprozess-IDs
 
     for (int i = 0; i < process_count; i++) {
+
+        int start_pipe[2];
+        pipe(start_pipe);
+
+
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -222,6 +227,10 @@ int main(int argc, char *argv[]) {
             continue;
         } else if (pid == 0) {
             // Kindprozess – führt nur exec() aus
+            close(start_pipe[1]); // Schreib-Ende schließen
+            char dummy;
+            read(start_pipe[0], &dummy, 1); // warten auf Startsignal
+
             execvp(executable_path, exec_args);
 
             // Nur erreichbar, wenn exec scheitert
@@ -231,6 +240,10 @@ int main(int argc, char *argv[]) {
         } else {
             // Nur hier im Elternprozess die pid_map schreiben
             osmp_shared->pid_map[i] = pid;
+
+            close(start_pipe[0]); // Lese-Ende schließen
+            write(start_pipe[1], "x", 1); // Startsignal senden
+
 
             snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d (Rank %d)", i + 1, pid, i);
             pid_children[started_count++] = pid;

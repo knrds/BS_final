@@ -68,10 +68,10 @@ int barrier_wait(barrier_t *barrier) {
         return EINVAL;
 
     if ((status = pthread_mutex_lock(&barrier->mutex)) != 0)
-        return status;
+        return status;  // Fehler beim Locken des Mutex
 
-    cycle = barrier->cycle;
-    barrier->counter--;
+    cycle = barrier->cycle; // Aktuellen Zyklus speichern
+    barrier->counter--; // Einen Thread dekrementieren
 
     if (barrier->counter == 0) {
         /* Letzter Thread: Zyklus hochzählen, counter zurücksetzen */

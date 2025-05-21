@@ -25,10 +25,6 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    if (2 != size) {
-        // Falsche Anzahl an Prozessen, diese Implementierung ist nur für 2 Prozesse gedacht
-        return EXIT_FAILURE;
-    }
 
     fprintf(stderr, "OSMP process %d is waiting at the barrier\n", rank);
     sleep(rank == 0 ? 1 : 5);
