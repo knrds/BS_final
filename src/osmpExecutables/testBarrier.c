@@ -26,9 +26,9 @@ int main(int argc, char **argv) {
     }
 
 
-    fprintf(stderr, "OSMP process %d is waiting at the barrier\n", rank);
-    sleep(rank == 0 ? 1 : 5);
 
+    sleep(rank == 0 ? 1 : 5);
+    fprintf(stderr, "OSMP process %d is waiting at the barrier\n", rank);
 
     rv = OSMP_Barrier();
     if (rv == OSMP_FAILURE) {
