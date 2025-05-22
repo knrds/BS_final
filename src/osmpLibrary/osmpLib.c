@@ -395,7 +395,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
     rv = OSMP_Size(&size);
     if (rv == OSMP_FAILURE) return OSMP_FAILURE;
 
-    if (root < 0 || root >= size)               return OSMP_FAILURE;
+    if (root < 0 || root >= size) return OSMP_FAILURE;
 
     unsigned int send_sz, recv_sz; // Größe der Datentypen wird geprüft
     if (OSMP_SizeOf(sendtype, &send_sz) != OSMP_SUCCESS) return OSMP_FAILURE;

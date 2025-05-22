@@ -47,15 +47,6 @@ int main(int argc, char **argv) {
         for (int i = 0; i < size * sendcount; ++i) recvbuf[i] = -1;
     }
 
-    //Barrier um Synchronisation zu gewährleisten
-    rv = OSMP_Barrier();
-    if (rv == OSMP_FAILURE) {
-        fprintf(stderr, "OSMP_Barrier failed on rank %d\n", rank);
-        free(recvbuf);
-        OSMP_Finalize();
-        return EXIT_FAILURE;
-    }
-
     // Gather aufrufen
     rv = OSMP_Gather(sendbuf, sendcount, OSMP_INT,
                      recvbuf, sendcount, OSMP_INT,
@@ -67,17 +58,7 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    //Barrier um Synchronisation zu gewährleisten
-    rv = OSMP_Barrier();
-    if (rv == OSMP_FAILURE) {
-        fprintf(stderr, "OSMP_Barrier failed on rank %d\n", rank);
-        free(recvbuf);
-        OSMP_Finalize();
-        return EXIT_FAILURE;
-    }
-
-
-    // Nur Root validiert und druckt
+    // Nur Root validiert
     if (rank == root) {
         printf("Gather-Ergebnis (root=%d):\n", root);
         int errors = 0;

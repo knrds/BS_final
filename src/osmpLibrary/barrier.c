@@ -29,7 +29,7 @@ int barrier_init(barrier_t *barrier, int count) {
     pthread_condattr_setpshared(&cattr, PTHREAD_PROCESS_SHARED); // funktioniert Prozessübergreifend
 
     // Barrier initialisieren
-    pthread_mutex_init(&barrier->mutex, &mattr); //mutex tatsächlich zuweisen
+    pthread_mutex_init(&barrier->mutex, &mattr);
     pthread_cond_init(&barrier->convar, &cattr);
 
     barrier->threshold = count;

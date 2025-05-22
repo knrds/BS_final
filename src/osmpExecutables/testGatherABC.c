@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    // Root druckt das rekonstruierte Alphabet (bis Null-Term)
+    // Root gibt das rekonstruierte Alphabet aus (bis Null-Term)
     if (rank == root) {
         printf("Rekonstruiertes Alphabet: \"");
         for (int i = 0; i < size * block; ++i) {
