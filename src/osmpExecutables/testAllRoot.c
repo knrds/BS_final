@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
             return EXIT_FAILURE;
         }
 
-        // Nur aktueller Root gibt Ergebnis aus
+
         if (rank == root) {
             printf("\n[Root = %d] Gather-Ergebnis:\n", root);
             int errors = 0;
@@ -77,8 +77,6 @@ int main(int argc, char **argv) {
             free(recvbuf);
         }
 
-        // Synchronisation (optional, z. B. Barrier)
-        OSMP_Barrier();
     }
 
     OSMP_Finalize();
