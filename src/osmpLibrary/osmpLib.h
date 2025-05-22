@@ -57,6 +57,7 @@ typedef struct {
     pid_t pid_map[];
 } osmp_shared_info_t;
 
+//TODO: Umstrukturierung der Shared Memory Bereiche
 
 #include "OSMP.h"
 

@@ -424,9 +424,12 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
             size_t copy_size = send_bytes < recv_bytes ? send_bytes : recv_bytes;
             void *src = gather_area + r * OSMP_MAX_PAYLOAD_LENGTH;
             void *dst = (char *)recvbuf + (size_t)r * recv_bytes;
-
             memcpy(dst, src, copy_size);
         }
+    }
+
+    if (barrier_wait(&osmp_shared->barrier_gather) != 0) {
+        return OSMP_FAILURE;
     }
 
     return OSMP_SUCCESS;

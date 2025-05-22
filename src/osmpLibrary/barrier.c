@@ -61,6 +61,8 @@ int barrier_destroy(barrier_t *barrier) {
  *
  * Gibt 0 zurück, wenn erfolgreich, sonst einen Fehlercode.
  */
+
+//TODO: Thread-Safe
 int barrier_wait(barrier_t *barrier) {
     int status, old_state, tmp, cycle;
 
