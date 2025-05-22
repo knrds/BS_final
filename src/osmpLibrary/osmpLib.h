@@ -20,6 +20,7 @@
 
 int OSMP_SetSharedMemory(void *ptr);
 
+// Mailboxen
 typedef struct {
     sem_t sem_free_mailbox_slots; // how many messages you may still enqueue (≤ OSMP_MAX_MESSAGES_PROC)
     sem_t sem_msg_available; // how many messages are currently enqueued

@@ -1,9 +1,0 @@
-Build Ordner
-cmake -S . -B build
-
-Bauen
-cmake --build build
-
-Runner test command
-./build/osmprun -p 20 -l osmpRunner.log -v 3 -e ./build/echoall hallo welt kannst du mich hören
-

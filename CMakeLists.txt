@@ -61,6 +61,8 @@ set(EXECUTABLES
         SOURCES src/osmpExecutables/testGather.c
         NAME testGatherABC
         SOURCES src/osmpExecutables/testGatherABC.c
+        NAME testSendRank
+        SOURCES src/osmpExecutables/testSendRank.c
         # Neue Executables hier einfügen
         # NAME <name>
         # SOURCES <source1> <source2> ...

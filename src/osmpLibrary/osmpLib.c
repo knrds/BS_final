@@ -353,9 +353,11 @@ int OSMP_Barrier(void) {
     snprintf(msg, sizeof(msg), "OSMP_Barrier: Process %d waiting at barrier", osmp_rank);
     OSMP_Log(OSMP_LOG_BIB_CALL, msg);
 
+    //fprintf(stderr, "OSMP process %d is waiting at the barrier\n", osmp_rank);
     if (barrier_wait(&osmp_shared->barrier) == 0) {
         char msg[128];
         snprintf(msg, sizeof(msg), "OSMP_Barrier: Process %d passed the barrier", osmp_rank);
+        //fprintf(stderr, "OSMP process %d is PASSED at the barrier\n", osmp_rank);
         OSMP_Log(OSMP_LOG_BIB_CALL, msg);
         return OSMP_SUCCESS;
     }
