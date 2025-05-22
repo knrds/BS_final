@@ -25,6 +25,7 @@ static int osmp_rank = -1;
 MailboxTypeManagement *mailboxes;
 FreeSlotQueue *fsq;
 MessageType *slots;
+char *gather_area;
 
 int OSMP_GetMaxPayloadLength(void) {
     // TODO: Implementieren Sie hier die Funktionalität der Funktion.
@@ -107,6 +108,7 @@ int OSMP_Init(const int *argc, char ***argv) {
             (FreeSlotQueue *) (mailboxes + N);
     slots =
             (MessageType *) (fsq + 1);
+    gather_area = (char *) (slots + OSMP_MAX_SLOTS);
 
     OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_Init() called");
     return OSMP_SUCCESS;
@@ -390,52 +392,46 @@ int OSMP_Barrier(void) {
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
                 void *recvbuf, int recvcount, OSMP_Datatype recvtype,
                 int root) {
-    int rank, size, rv;
-
-    rv = OSMP_Rank(&rank);
-    if (rv == OSMP_FAILURE) return OSMP_FAILURE;
-    rv = OSMP_Size(&size);
-    if (rv == OSMP_FAILURE) return OSMP_FAILURE;
+    int rank, size;
+    if (OSMP_Rank(&rank) != OSMP_SUCCESS) return OSMP_FAILURE;
+    if (OSMP_Size(&size) != OSMP_SUCCESS) return OSMP_FAILURE;
 
     if (root < 0 || root >= size) return OSMP_FAILURE;
 
-    unsigned int send_sz, recv_sz; // Größe der Datentypen wird geprüft
+    unsigned int send_sz, recv_sz;
     if (OSMP_SizeOf(sendtype, &send_sz) != OSMP_SUCCESS) return OSMP_FAILURE;
     if (OSMP_SizeOf(recvtype, &recv_sz) != OSMP_SUCCESS) return OSMP_FAILURE;
 
-    // Nicht-Root: senden und beenden
-    if (rank != root) {
-        return OSMP_Send(sendbuf, sendcount, sendtype, root) == OSMP_SUCCESS
-             ? OSMP_SUCCESS : OSMP_FAILURE;
+    size_t send_bytes = (size_t)sendcount * send_sz;
+    if (send_bytes > OSMP_MAX_PAYLOAD_LENGTH) return OSMP_FAILURE;
+
+    //Jeder Prozess schreibt seinen Beitrag in die dynamische gather_area
+    memcpy(gather_area + rank * OSMP_MAX_PAYLOAD_LENGTH, sendbuf, send_bytes);
+
+    //Alle Prozesse warten, bis jeder geschrieben hat
+    if (barrier_wait(&osmp_shared->barrier_gather) != 0) {
+        return OSMP_FAILURE;
     }
 
-    //Eigenen Beitrag kopieren
-    if (!recvbuf) return OSMP_FAILURE;
-    size_t own_bytes = (size_t)sendcount * send_sz;
-    size_t max_bytes = (size_t)recvcount * recv_sz;
-    if (own_bytes > max_bytes) own_bytes = max_bytes;
-    size_t off0 = (size_t)root * (size_t)recvcount * recv_sz;  // Offset für den eigenen Beitrag
-    memcpy((char*)recvbuf + off0, sendbuf, own_bytes);  // schreibt die eigene Nachricht in den Puffer an der stelle mit Offset
+    //Nur Root kopiert aus gather_area in recvbuf
+    if (rank == root) {
+        if (!recvbuf) return OSMP_FAILURE;
 
-    //Rest empfangen via Zwischenspeicher
-    size_t tmpbuf_size = (size_t)recvcount * recv_sz;  // Zwischenspeicher für die empfangenen Nachrichten
-    char *tmpbuf = malloc(tmpbuf_size);
-    if (!tmpbuf) return OSMP_FAILURE;
+        size_t recv_bytes = (size_t)recvcount * recv_sz;
 
-    for (int i = 0; i < size-1; ++i) {
-        int src, len_bytes;
-        rv = OSMP_Recv(tmpbuf, recvcount, recvtype, &src, &len_bytes);
-        if (rv == OSMP_FAILURE) {
-            free(tmpbuf);
-            return OSMP_FAILURE;
+        // Root liest alle Daten aus gather_area
+        for (int r = 0; r < size; ++r) {
+            size_t copy_size = send_bytes < recv_bytes ? send_bytes : recv_bytes;
+            void *src = gather_area + r * OSMP_MAX_PAYLOAD_LENGTH;
+            void *dst = (char *)recvbuf + (size_t)r * recv_bytes;
+
+            memcpy(dst, src, copy_size);
         }
-        size_t offset = (size_t)src * (size_t)recvcount * recv_sz;  // Offset für den eigenen Beitrag Src mal recvcount mal recv_sz
-        memcpy((char*)recvbuf + offset, tmpbuf, (size_t)len_bytes);
     }
 
-    free(tmpbuf);
     return OSMP_SUCCESS;
 }
+
 
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest,
                OSMP_Request request) {

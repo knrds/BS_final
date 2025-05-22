@@ -64,9 +64,14 @@ int main(int argc, char **argv) {
     if (rank == root) {
         printf("Gather-Ergebnis (root=%d):\n", root);
         int errors = 0;
+        // Über alle Prozesse itterieren
         for (int r = 0; r < size; ++r) {
             printf(" Rank %d: ", r);
+            //Über sendcount itterieren
             for (int i = 0; i < sendcount; ++i) {
+                //ReceiveBuffer an stelle r*sendcount+i
+                //recvbuf[1 * 10 + 3] = recvbuf[13]
+                // 4. Wert (i = 3) von Rank 1 (r = 1)
                 int got = recvbuf[r * sendcount + i];
                 printf("%3d ", got);
                 if (got != r + i) ++errors;

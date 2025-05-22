@@ -53,6 +53,7 @@ typedef struct {
     int verbosity_level;
     sem_t log_mutex;
     barrier_t barrier;
+    barrier_t barrier_gather;
     pid_t pid_map[];
 } osmp_shared_info_t;
 

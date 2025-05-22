@@ -33,12 +33,14 @@ int setup_shared_memory(int process_count) {
     size_t sz_mailbx = (size_t) process_count * sizeof(MailboxTypeManagement);
     size_t sz_fsq = sizeof(FreeSlotQueue);
     size_t sz_slots = OSMP_MAX_SLOTS * sizeof(MessageType);
+    size_t sz_gather = (size_t) process_count * OSMP_MAX_PAYLOAD_LENGTH;
 
     size_t shm_size = sz_hdr
                       + sz_pidmap
                       + sz_mailbx
                       + sz_fsq
-                      + sz_slots;
+                      + sz_slots
+                      + sz_gather;
 
     shm_unlink(SHM_NAME);
     int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
@@ -124,6 +126,12 @@ int setup_shared_memory(int process_count) {
 
     if(barrier_init(&osmp_shared->barrier, process_count) != 0) {
         perror("Barrier initialization failed");
+        close(fd);
+        return OSMP_FAILURE;
+    }
+
+    if(barrier_init(&osmp_shared->barrier_gather, process_count) != 0) {
+        perror("Gather Barrier initialization failed");
         close(fd);
         return OSMP_FAILURE;
     }
