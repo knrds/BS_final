@@ -62,7 +62,7 @@ int barrier_destroy(barrier_t *barrier) {
  * Gibt 0 zurück, wenn erfolgreich, sonst einen Fehlercode.
  */
 int barrier_wait(barrier_t *barrier) {
-    int status, cancel, tmp, cycle;
+    int status, old_state, tmp, cycle;
 
     if (barrier == NULL || barrier->valid != BARRIER_VALID)
         return EINVAL;
@@ -71,26 +71,26 @@ int barrier_wait(barrier_t *barrier) {
         return status;  // Fehler beim Locken des Mutex
 
     cycle = barrier->cycle; // Aktuellen Zyklus speichern
-    barrier->counter--; // Einen Thread dekrementieren
+    barrier->counter--; // Einen Prozesse dekrementieren
 
     if (barrier->counter == 0) {
         /* Letzter Thread: Zyklus hochzählen, counter zurücksetzen */
         barrier->cycle = cycle + 1;
-        barrier->counter = barrier->threshold;  // Anzahl der Threads zurücksetzen
-        /* Alle wartenden Threads freigeben */
-        status = pthread_cond_broadcast(&barrier->convar); // Alle Threads aufwecken
+        barrier->counter = barrier->threshold;  // Anzahl der Prozesse zurücksetzen
+        /* Alle wartenden Prozesse freigeben */
+        status = pthread_cond_broadcast(&barrier->convar); // Alle Prozesse aufwecken
         if (status != 0) { // Fehler beim Broadcast
             pthread_mutex_unlock(&barrier->mutex);
             return status;
         }
     } else {
         /* Wartepunkte sollen nicht abbrechbar sein */
-        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cancel);  // Verhintert Cancel des Threads während des Waits
+        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &old_state);  // Verhintert Cancel des Prozesse während des Waits
         while (cycle == barrier->cycle && status == 0) {
             status = pthread_cond_wait(&barrier->convar, &barrier->mutex);  // Geht erst weiter wenn neuer cycle startet / cond broadcast kommt
         }
         /* Ursprünglichen Cancel-State wiederherstellen */
-        pthread_setcancelstate(cancel, &tmp);
+        pthread_setcancelstate(old_state, &tmp);
     }
 
     pthread_mutex_unlock(&barrier->mutex);
