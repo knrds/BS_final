@@ -27,27 +27,22 @@ FreeSlotQueue *fsq;
 MessageType *slots;
 
 int OSMP_GetMaxPayloadLength(void) {
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
     return OSMP_MAX_PAYLOAD_LENGTH;
 }
 
 int OSMP_GetMaxSlots(void) {
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
     return OSMP_MAX_SLOTS;
 }
 
 int OSMP_GetMaxMessagesProc(void) {
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
     return OSMP_MAX_MESSAGES_PROC;
 }
 
 int OSMP_GetFailure(void) {
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
     return OSMP_FAILURE;
 }
 
 int OSMP_GetSucess(void) {
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
     return OSMP_SUCCESS;
 }
 
@@ -360,7 +355,7 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
     rv = OSMP_Size(&size);
     if (rv == OSMP_FAILURE) return OSMP_FAILURE;
 
-    if (root < 0 || root >= size)               return OSMP_FAILURE;
+    if (root < 0 || root >= size) return OSMP_FAILURE;
 
     unsigned int send_sz, recv_sz;
     if (OSMP_SizeOf(sendtype, &send_sz) != OSMP_SUCCESS) return OSMP_FAILURE;
@@ -369,89 +364,267 @@ int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
     // Nicht-Root: senden und beenden
     if (rank != root) {
         return OSMP_Send(sendbuf, sendcount, sendtype, root) == OSMP_SUCCESS
-             ? OSMP_SUCCESS : OSMP_FAILURE;
+                   ? OSMP_SUCCESS
+                   : OSMP_FAILURE;
     }
 
     //Eigenen Beitrag kopieren
     if (!recvbuf) return OSMP_FAILURE;
-    size_t own_bytes = (size_t)sendcount * send_sz;
-    size_t max_bytes = (size_t)recvcount * recv_sz;
+    size_t own_bytes = (size_t) sendcount * send_sz;
+    size_t max_bytes = (size_t) recvcount * recv_sz;
     if (own_bytes > max_bytes) own_bytes = max_bytes;
-    size_t off0 = (size_t)root * (size_t)recvcount * recv_sz;
-    memcpy((char*)recvbuf + off0, sendbuf, own_bytes);
+    size_t off0 = (size_t) root * (size_t) recvcount * recv_sz;
+    memcpy((char *) recvbuf + off0, sendbuf, own_bytes);
 
     //Rest empfangen via Zwischenspeicher
-    size_t tmpbuf_size = (size_t)recvcount * recv_sz;
+    size_t tmpbuf_size = (size_t) recvcount * recv_sz;
     char *tmpbuf = malloc(tmpbuf_size);
     if (!tmpbuf) return OSMP_FAILURE;
 
-    for (int i = 0; i < size-1; ++i) {
+    for (int i = 0; i < size - 1; ++i) {
         int src, len_bytes;
         rv = OSMP_Recv(tmpbuf, recvcount, recvtype, &src, &len_bytes);
         if (rv == OSMP_FAILURE) {
             free(tmpbuf);
             return OSMP_FAILURE;
         }
-        size_t offset = (size_t)src * (size_t)recvcount * recv_sz;
-        memcpy((char*)recvbuf + offset, tmpbuf, (size_t)len_bytes);
+        size_t offset = (size_t) src * (size_t) recvcount * recv_sz;
+        memcpy((char *) recvbuf + offset, tmpbuf, (size_t) len_bytes);
     }
 
     free(tmpbuf);
     return OSMP_SUCCESS;
 }
 
-int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest,
-               OSMP_Request request) {
-    UNUSED(buf);
-    UNUSED(count);
-    UNUSED(datatype);
-    UNUSED(dest);
-    UNUSED(request);
+/**
+ * implements the semaphore waiting function
+ * @param sem the semaphore on which to wait
+ * @return OSMP_SUCCESS if the wait is done and successful otherwise OSMP_FAILURE
+ */
+int semwait(sem_t *sem) {
+    if (sem_wait(sem) == -1) {
+        if (OSMP_Log(OSMP_LOG_BIB_CALL, "Fehler: semwait") == OSMP_FAILURE) {
+            perror("log_message Failed");
+        }
+        return OSMP_FAILURE;
+    }
+    return OSMP_SUCCESS;
+}
 
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+/**
+ * implements the semaphore signal function
+ * @param sem the semaphore on what it signals
+ * @return OSMP_SUCCESS if the Signal is done and successful otherwise OSMP_FAILURE
+ */
+int semsignal(sem_t *sem) {
+    if (sem_post(sem) == -1) {
+        if (OSMP_Log(OSMP_LOG_BIB_CALL, "Fehler: semsignal") == OSMP_FAILURE) {
+            perror("log_message Failed");
+        }
+        return OSMP_FAILURE;
+    }
+    return OSMP_SUCCESS;
+}
+
+/**
+ * Initialisieren eines Threads für das blockierende Senden einer Nachricht
+ * @param arg Request in denen Mutex und Argumente zum Senden enthalten sind (wird intern gecasted)
+ * @return Status der Verarbeitung OSMP_SUCCESS bei Erfolg, OSMP_FAILURE sonst [muss als int gecasted werden beim auslesen]
+ */
+void *init_send_thread(void *arg) {
+    osmp_request *request = (osmp_request *) arg;
+    iSend_args *send_arguments = request->iSend_args;
+
+    int status = OSMP_Send(send_arguments->buffer, send_arguments->count, send_arguments->datatype,
+                           send_arguments->destination);
+
+    semwait(&request->status_semaphore);
+    request->status = status;
+    semsignal(&request->status_semaphore);
+
+    if (status != OSMP_SUCCESS) {
+        pthread_exit((void *) OSMP_FAILURE);
+    }
+
+    pthread_exit((void *) OSMP_SUCCESS);
+}
+
+
+/**
+ * Initialisieren eines Threads für das blockierende Empfangens einer Nachricht
+ * @param arg die osmp_request
+ * @return OSMP_SUCCESS bei Erfolg, OSMP_FAILURE sonst
+ */
+void *init_recv_thread(void *arg) {
+    osmp_request *request = (osmp_request *) arg;
+    iRecv_args *recv_arguments = request->iRecv_args;
+
+    int size;
+    OSMP_Size(&size);
+    int status = OSMP_Recv(recv_arguments->buffer, recv_arguments->count, recv_arguments->datatype,
+                           recv_arguments->source, recv_arguments->len);
+    semwait(&request->status_semaphore);
+    request->status = status;
+    semsignal(&request->status_semaphore);
+    if (status != OSMP_SUCCESS) {
+        pthread_exit((void *) OSMP_FAILURE);
+    }
+    pthread_exit((void *) OSMP_SUCCESS);
+}
+
+/**
+ * Initialisert einen Thread für die asynchrone Senden und Empfangen einer Nachricht .
+ * @param request OSMP_Request, für welche der Thread erstellt werden soll.
+ * @param function Funktion, welche vom Thread gestartet wird
+ * @return OSMP_SUCCESS bei Erfolg, sonst OSMP_FAILURE
+ */
+int initialize_thread(osmp_request *request, void *(*function)(void *)) {
+    pthread_t thread;
+    pthread_attr_t thread_attr;
+
+    int status = pthread_attr_init(&thread_attr);
+
+    if (status != 0) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "initialize_joinable_thread_for_request: Error initializing thread");
+        return OSMP_FAILURE;
+    }
+
+    // Sorgt dafür, dass der Thread joinable ist, damit später mit pthread_join() gewartet werden kann
+    status = pthread_attr_setdetachstate(&thread_attr, PTHREAD_CREATE_JOINABLE);
+
+    if (status != 0) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "initialize_joinable_thread_for_request: Error setting detach state in thread");
+        return OSMP_FAILURE;
+    }
+
+    // Setze den Scope des Threads auf SYSTEM, damit er auf dem System-Scheduler läuft
+    status = pthread_attr_setscope(&thread_attr, PTHREAD_SCOPE_SYSTEM);
+
+    if (status != 0) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "initialize_joinable_thread_for_request: Error setting scope of thread");
+        return OSMP_FAILURE;
+    }
+    status = pthread_create(&thread, &thread_attr, function, request);
+
+    if (status != 0) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "initialize_joinable_thread_for_request: Error creating thread");
+        return OSMP_FAILURE;
+    }
+
+    pthread_attr_destroy(&thread_attr);
+    request->thread = thread;
+
+    return OSMP_SUCCESS;
+}
+
+
+int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {
+    iSend_args *arguments = calloc(1, sizeof(iSend_args));
+    arguments->buffer = buf;
+    arguments->count = count;
+    arguments->datatype = datatype;
+    arguments->destination = dest;
+
+    osmp_request *proper_request = (osmp_request *) request;
+
+    semwait(&proper_request->status_semaphore);
+    if (proper_request->status != CREATED) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_ISend: Request must not be used twice or was not initialized...");
+        semsignal(&proper_request->status_semaphore);
+        return OSMP_FAILURE;
+    }
+    proper_request->status = CURRENTLY_USED;
+    semsignal(&proper_request->status_semaphore);
+
+    proper_request->iSend_args = arguments;
+
+    if (initialize_thread(proper_request, &init_send_thread) != OSMP_SUCCESS) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_ISend: Error initializing send thread");
+        free(arguments);
+        return OSMP_FAILURE;
+    }
+
+    return OSMP_SUCCESS;
 }
 
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source,
                int *len, OSMP_Request request) {
-    UNUSED(buf);
-    UNUSED(count);
-    UNUSED(datatype);
-    UNUSED(source);
-    UNUSED(len);
-    UNUSED(request);
+    iRecv_args *arguments = calloc(1, sizeof(iRecv_args));
+    arguments->buffer = buf;
+    arguments->count = count;
+    arguments->datatype = datatype;
+    arguments->source = source;
+    arguments->len = len;
 
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+    osmp_request *req = (osmp_request *) request;
+
+    semwait(&req->status_semaphore);
+    if (req->status != CREATED) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_IRecv: Request must not be used twice or was not initialized...");
+        semsignal(&req->status_semaphore);
+        return OSMP_FAILURE;
+    }
+    req->status = CURRENTLY_USED;
+    semsignal(&req->status_semaphore);
+
+    req->iRecv_args = arguments;
+
+    if (initialize_thread(req, &init_recv_thread) != OSMP_SUCCESS) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_ISend: Error initializing send thread");
+        free(arguments);
+        return OSMP_FAILURE;
+    }
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Test(OSMP_Request request, int *flag) {
-    UNUSED(request);
-    UNUSED(flag);
+    osmp_request *req = (osmp_request *) request;
+    semwait(&req->status_semaphore);
+    if (req->status == CREATED || req->status == CURRENTLY_USED) {
+        *flag = 0;
+        semsignal(&req->status_semaphore);
+        return OSMP_SUCCESS;
+    }
 
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+    *flag = 1;
+    semsignal(&req->status_semaphore);
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Wait(OSMP_Request request) {
-    UNUSED(request);
+    osmp_request *proper_request = (osmp_request *) request;
 
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+    void *thread_status = (void *) OSMP_SUCCESS;
+    int status = pthread_join(proper_request->thread, &thread_status);
+
+    if (status != 0) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_Wait: Error joining thread");
+        return OSMP_FAILURE;
+    }
+
+    if (thread_status != (void *) OSMP_SUCCESS) {
+        OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_Wait: Thread did not complete successfully");
+        return OSMP_FAILURE;
+    }
+    return OSMP_SUCCESS;
 }
 
 int OSMP_CreateRequest(OSMP_Request *request) {
-    UNUSED(request);
-
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+    OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_CreateRequest() called");
+    osmp_request *req = calloc(1, sizeof(osmp_request));
+    req->status = CREATED;
+    sem_init(&req->status_semaphore, 0, 1);
+    *request = req;
+    return OSMP_SUCCESS;
 }
 
 int OSMP_RemoveRequest(OSMP_Request *request) {
-    UNUSED(request);
-
-    // TODO: Implementieren Sie hier die Funktionalität der Funktion.
-    return OSMP_FAILURE;
+    OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_RemoveRequest() called");
+    osmp_request *req = (osmp_request *) *request;
+    sem_destroy(&req->status_semaphore);
+    free(req);
+    *request = NULL;
+    return OSMP_SUCCESS;
 }
 
 int OSMP_Log(OSMP_Verbosity verbosity, char *message) {

@@ -18,6 +18,43 @@
 #define SHM_NAME "/osmp_shm"
 #define SHM_SIZE sizeof(osmp_shared_info_t) // Größe des Shared Memory
 
+/**
+ * enum für die verschiedenen Statuscodes einer OSMP-Anfrage
+ */
+# define CREATED 2
+# define CURRENTLY_USED 3
+/**
+ * Datentyp zur Kapselung der Argumente für das nicht-blockierende Senden einer Nachricht
+ */
+typedef struct {
+    const void *buffer;
+    int count;
+    OSMP_Datatype datatype;
+    int destination;
+} iSend_args;
+
+/**
+ * Datentyp zur Kapselung der Argumente für das nicht-blockierende Empfangen einer Nachricht
+ */
+typedef struct {
+    void *buffer;
+    int count;
+    OSMP_Datatype datatype;
+    int *source;
+    int *len;
+} iRecv_args;
+
+/**
+ * Datentyp zur Beschreibung einer OSMP-Anfrage.
+ */
+typedef struct {
+    pthread_t thread;
+    iSend_args *iSend_args;
+    iRecv_args *iRecv_args;
+    int status;
+    sem_t status_semaphore;
+} osmp_request;
+
 int OSMP_SetSharedMemory(void *ptr);
 
 typedef struct {
