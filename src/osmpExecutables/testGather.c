@@ -9,7 +9,7 @@
 int main(int argc, char **argv) {
     int rv, size, rank;
     const int root = 0;
-    const int sendcount = 7;
+    const int sendcount = 10;
 
     rv = OSMP_Init(&argc, &argv);
     if (rv == OSMP_FAILURE) return EXIT_FAILURE;
@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     // Jeder füllt seinen Puffer mit rank*100 + i
     int sendbuf[sendcount];
     for (int i = 0; i < sendcount; ++i)
-        sendbuf[i] = rank * 100 + i;
+        sendbuf[i] = rank + i;
 
     // Root reserviert recvbuf
     int *recvbuf = NULL;
@@ -47,14 +47,6 @@ int main(int argc, char **argv) {
         for (int i = 0; i < size * sendcount; ++i) recvbuf[i] = -1;
     }
 
-    //Barrier um Synchronisation zu gewährleisten
-    rv = OSMP_Barrier();
-    if (rv == OSMP_FAILURE) {
-        fprintf(stderr, "OSMP_Barrier failed on rank %d\n", rank);
-        free(recvbuf);
-        OSMP_Finalize();
-        return EXIT_FAILURE;
-    }
 
     // Gather aufrufen
     rv = OSMP_Gather(sendbuf, sendcount, OSMP_INT,
@@ -67,26 +59,22 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    //Barrier um Synchronisation zu gewährleisten
-    rv = OSMP_Barrier();
-    if (rv == OSMP_FAILURE) {
-        fprintf(stderr, "OSMP_Barrier failed on rank %d\n", rank);
-        free(recvbuf);
-        OSMP_Finalize();
-        return EXIT_FAILURE;
-    }
 
-
-    // Nur Root validiert und druckt
+    // Nur Root validiert und gibt aus
     if (rank == root) {
         printf("Gather-Ergebnis (root=%d):\n", root);
         int errors = 0;
+        // Über alle Prozesse itterieren
         for (int r = 0; r < size; ++r) {
             printf(" Rank %d: ", r);
+            //Über sendcount itterieren
             for (int i = 0; i < sendcount; ++i) {
+                //ReceiveBuffer an stelle r*sendcount+i
+                //recvbuf[1 * 10 + 3] = recvbuf[13]
+                // 4. Wert (i = 3) von Rank 1 (r = 1)
                 int got = recvbuf[r * sendcount + i];
                 printf("%3d ", got);
-                if (got != r * 100 + i) ++errors;
+                if (got != r + i) ++errors;
             }
             printf("\n");
         }

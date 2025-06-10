@@ -57,6 +57,7 @@ typedef struct {
 
 int OSMP_SetSharedMemory(void *ptr);
 
+// Mailboxen
 typedef struct {
     sem_t sem_free_mailbox_slots; // how many messages you may still enqueue (≤ OSMP_MAX_MESSAGES_PROC)
     sem_t sem_msg_available; // how many messages are currently enqueued
@@ -89,9 +90,11 @@ typedef struct {
     int verbosity_level;
     sem_t log_mutex;
     barrier_t barrier;
-    pid_t pid_map[]; //TODO Alle variablen / dynamischen parmeter in in eine Struktur
+    barrier_t barrier_gather;
+    pid_t pid_map[];
 } osmp_shared_info_t;
 
+//TODO: Umstrukturierung der Shared Memory Bereiche
 
 #include "OSMP.h"
 

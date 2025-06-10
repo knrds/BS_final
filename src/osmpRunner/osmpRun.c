@@ -33,12 +33,14 @@ int setup_shared_memory(int process_count) {
     size_t sz_mailbx = (size_t) process_count * sizeof(MailboxTypeManagement);
     size_t sz_fsq = sizeof(FreeSlotQueue);
     size_t sz_slots = OSMP_MAX_SLOTS * sizeof(MessageType);
+    size_t sz_gather = (size_t) process_count * OSMP_MAX_PAYLOAD_LENGTH;
 
     size_t shm_size = sz_hdr
                       + sz_pidmap
                       + sz_mailbx
                       + sz_fsq
-                      + sz_slots;
+                      + sz_slots
+                      + sz_gather;
 
     shm_unlink(SHM_NAME);
     int fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
@@ -124,6 +126,12 @@ int setup_shared_memory(int process_count) {
 
     if(barrier_init(&osmp_shared->barrier, process_count) != 0) {
         perror("Barrier initialization failed");
+        close(fd);
+        return OSMP_FAILURE;
+    }
+
+    if(barrier_init(&osmp_shared->barrier_gather, process_count) != 0) {
+        perror("Gather Barrier initialization failed");
         close(fd);
         return OSMP_FAILURE;
     }
@@ -214,6 +222,11 @@ int main(int argc, char *argv[]) {
     pid_t pid_children[process_count]; // Array zur Speicherung der Kinderprozess-IDs
 
     for (int i = 0; i < process_count; i++) {
+
+        int start_pipe[2];
+        pipe(start_pipe);
+
+
         pid_t pid = fork();
 
         if (pid < 0) {
@@ -222,6 +235,10 @@ int main(int argc, char *argv[]) {
             continue;
         } else if (pid == 0) {
             // Kindprozess – führt nur exec() aus
+            close(start_pipe[1]); // Schreib-Ende schließen
+            char dummy;
+            read(start_pipe[0], &dummy, 1); // warten auf Startsignal
+
             execvp(executable_path, exec_args);
 
             // Nur erreichbar, wenn exec scheitert
@@ -231,6 +248,10 @@ int main(int argc, char *argv[]) {
         } else {
             // Nur hier im Elternprozess die pid_map schreiben
             osmp_shared->pid_map[i] = pid;
+
+            close(start_pipe[0]); // Lese-Ende schließen
+            write(start_pipe[1], "x", 1); // Startsignal senden
+
 
             snprintf(buffer, sizeof(buffer), "Started instance %d with PID %d (Rank %d)", i + 1, pid, i);
             pid_children[started_count++] = pid;

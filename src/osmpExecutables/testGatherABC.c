@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     const int N = 26;
     // Jeder Prozess sendet genau sendcount = ceil(26/size) Zeichen,
     // der letzte Puffer wird ggf. mit '\0' aufgefüllt.
-    int block = (N + size - 1) / size;
+    int block = (N + size - 1) / size;  // teilt das Alphabet auf, indem es durch die Anzahl der Prozesse geteilt wird
     char *sendbuf = malloc((size_t)block);
     if (!sendbuf) {
         OSMP_Finalize();
@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    // Root druckt das rekonstruierte Alphabet (bis Null-Term)
+    // Root gibt das rekonstruierte Alphabet aus (bis Null-Term)
     if (rank == root) {
         printf("Rekonstruiertes Alphabet: \"");
         for (int i = 0; i < size * block; ++i) {

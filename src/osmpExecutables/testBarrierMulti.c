@@ -25,11 +25,16 @@ int main(int argc, char **argv) {
     if (OSMP_FAILURE == rv) {
         return EXIT_FAILURE;
     }
-    sleep((unsigned int)rank % 5);
+    //sleep((unsigned int)rank % 5);
+
+
 
     fprintf(stderr, "OSMP process %d is waiting at the barrier\n", rank);
 
-    rv = OSMP_Barrier();
+    for (int i = 0; i < 100; i++) {
+        rv = OSMP_Barrier();
+    }
+
     if (rv == OSMP_FAILURE) {
         fprintf(stderr, "OSMP_Barrier failed in process %d\n", rank);
         OSMP_Finalize();
