@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../osmpLibrary/OSMP.h"
+#include "../osmpLibrary/osmpLib.h"
 /**
  * Jeder Prozess sendet nicht-blockierend Nachrichte an jeden Prozess und empfängt nachrichten von jedem anderem
  * @param argc Unused
@@ -49,7 +50,6 @@ int main(int argc, char *argv[]) {
     int outputBuffer[totalProcesses - 1];
     int sources[totalProcesses - 1];
     for (int i = 0; i < totalProcesses - 1; i++) {
-
         returnVal = OSMP_CreateRequest(&recvRequests[i]);
 
         if (returnVal == OSMP_FAILURE) {
@@ -62,7 +62,6 @@ int main(int argc, char *argv[]) {
                 printf("Error receiving\n");
             }
         }
-
     }
 
     for (int i = 0; i < totalProcesses - 1; i++) {
@@ -82,6 +81,6 @@ int main(int argc, char *argv[]) {
     }
 
     returnVal = OSMP_Finalize();
-    printf("%d\n", returnVal);
+    UNUSED(returnVal);
     return 0;
 }

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include "../osmpLibrary/OSMP.h"
 
@@ -45,7 +46,7 @@ int main(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        if (OSMP_ISend(sendbuf, (int)strlen(sendbuf) + 1, OSMP_BYTE, 1, send_req) != OSMP_SUCCESS) {
+        if (OSMP_ISend(sendbuf, (int) strlen(sendbuf) + 1, OSMP_BYTE, 1, send_req) != OSMP_SUCCESS) {
             fprintf(stderr, "[%d] ISend failed\n", rank);
             OSMP_RemoveRequest(&send_req);
             OSMP_Finalize();
@@ -62,7 +63,7 @@ int main(int argc, char *argv[]) {
             }
             if (!flag) {
                 printf("[%d] ISend noch nicht abgeschlossen, warte...\n", rank);
-                sleep(1); // Simuliere Arbeit
+                sleep(1);
             }
         } while (!flag);
 
@@ -70,7 +71,6 @@ int main(int argc, char *argv[]) {
                rank, sendbuf);
 
         OSMP_RemoveRequest(&send_req);
-
     } else {
         // --- Empfänger (Rank 1) ---
         if (OSMP_CreateRequest(&recv_req) != OSMP_SUCCESS) {
@@ -85,9 +85,6 @@ int main(int argc, char *argv[]) {
             OSMP_Finalize();
             return EXIT_FAILURE;
         }
-
-        printf("[%d] Simuliere interne Logik...\n", rank);
-        sleep(1); // Simuliere Arbeit
 
         if (OSMP_Test(recv_req, &flag) != OSMP_SUCCESS) {
             fprintf(stderr, "[%d] Test failed\n", rank);

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../osmpLibrary/OSMP.h"
+#include "../osmpLibrary/osmpLib.h"
 
 
 int main(int argc, char *argv[])
@@ -32,20 +33,16 @@ int main(int argc, char *argv[])
         rv = OSMP_Send( bufin, len, OSMP_BYTE, 1 );
     }
     else {
-        // OSMP process 1
         bufout = calloc(1, (size_t) SIZE); // check for != NULL
         rv = OSMP_CreateRequest( &myrequest );
         rv = OSMP_IRecv( bufout, SIZE, OSMP_BYTE, &source, &len, myrequest );
-        // do something important…
-        // check if operation is completed and wait if not
         rv = OSMP_Wait( myrequest );
-        // OSMP_IRecv() completed, use bufout
 
         printf("Should be Hello World: %s\n", bufout);
 
         rv = OSMP_RemoveRequest( &myrequest );
     }
     rv = OSMP_Finalize();
-    printf("%d\n", rv);
+    UNUSED(rv);
     return 0;
 }

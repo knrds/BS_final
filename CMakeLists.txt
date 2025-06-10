@@ -69,6 +69,8 @@ set(EXECUTABLES
         SOURCES src/osmpExecutables/test_N_M_ISendIRecv.c
         NAME testNonBlocking
         SOURCES src/osmpExecutables/testNonBlocking.c
+        NAME testSendIRecvNonBlock
+        SOURCES src/osmpExecutables/testSendIRecvNonBlock.c
         # Neue Executables hier einfügen
         # NAME <name>
         # SOURCES <source1> <source2> ...
