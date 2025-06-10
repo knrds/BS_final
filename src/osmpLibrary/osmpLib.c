@@ -21,31 +21,52 @@
 
 static osmp_shared_info_t *osmp_shared = NULL;
 static int osmp_rank = -1;
+static size_t shm_total_size = 0;
 
-MailboxTypeManagement *mailboxes;
-FreeSlotQueue *fsq;
-MessageType *slots;
+// Globale Instanz der dynamischen Bereichsadressen. Alle Funktionen greifen
+// nach der Initialisierung über diese Zeiger auf die dynamischen Abschnitte zu.
+dynamic_values dynamic_areas;
 
+/**
+ * Liefert die maximal unterstützte Nutzlastlänge einer Nachricht.
+ */
 int OSMP_GetMaxPayloadLength(void) {
     return OSMP_MAX_PAYLOAD_LENGTH;
 }
 
+/**
+ * Anzahl der global verfügbaren Nachrichtenslots.
+ */
 int OSMP_GetMaxSlots(void) {
     return OSMP_MAX_SLOTS;
 }
 
+/**
+ * Gibt zurück, wie viele Nachrichten maximal in einer Mailbox gespeichert
+ * werden können.
+ */
 int OSMP_GetMaxMessagesProc(void) {
     return OSMP_MAX_MESSAGES_PROC;
 }
 
+/**
+ * Hilfsfunktion: liefert den konstanten Fehlercode.
+ */
 int OSMP_GetFailure(void) {
     return OSMP_FAILURE;
 }
 
+/**
+ * Hilfsfunktion: liefert den konstanten Erfolgscode.
+ */
 int OSMP_GetSucess(void) {
     return OSMP_SUCCESS;
 }
 
+/**
+ * Initialisiert die Bibliothek und ermittelt die eigenen Zeiger auf den
+ * Shared-Memory-Bereich. Jeder Prozess muss diese Funktion zu Beginn aufrufen.
+ */
 int OSMP_Init(const int *argc, char ***argv) {
     UNUSED(argc);
     UNUSED(argv);
@@ -64,8 +85,8 @@ int OSMP_Init(const int *argc, char ***argv) {
         return OSMP_FAILURE;
     }
 
-    void *ptr = mmap(NULL, (size_t) shm_stat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    //TODO Shared memory pointer statt ptr*
+    shm_total_size = (size_t) shm_stat.st_size;
+    void *ptr = mmap(NULL, shm_total_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     close(shm_fd);
     if (ptr == MAP_FAILED) {
         perror("mmap failed");
@@ -76,13 +97,21 @@ int OSMP_Init(const int *argc, char ***argv) {
     // Initialisiere den Shared Memory
     osmp_shared = (osmp_shared_info_t *) ptr;
 
-    // Setze die Anzahl der Prozesse auf 0
+    // Adressen der dynamischen Bereiche ermitteln
+    char *base = (char *) osmp_shared + SHM_HDR_SIZE;
+    const int N = osmp_shared->process_count;
+    dynamic_areas.pid_map = (pid_t *) base;
+    dynamic_areas.mailboxes = (MailboxTypeManagement *) (dynamic_areas.pid_map + N);
+    dynamic_areas.fsq = (FreeSlotQueue *) (dynamic_areas.mailboxes + N);
+    dynamic_areas.slots = (MessageType *) (dynamic_areas.fsq + 1);
+    dynamic_areas.gather_area = (char *) (dynamic_areas.slots + OSMP_MAX_SLOTS);
+
+    // Bestimme eigenen Rang anhand der pid_map
     pid_t my_pid = getpid();
     osmp_rank = -1;
 
-    // Durchsuche pid_map auf meine PID
-    for (int i = 0; i < osmp_shared->process_count; i++) {
-        if (osmp_shared->pid_map[i] == my_pid) {
+    for (int i = 0; i < N; i++) {
+        if (dynamic_areas.pid_map[i] == my_pid) {
             osmp_rank = i;
             break;
         }
@@ -94,19 +123,14 @@ int OSMP_Init(const int *argc, char ***argv) {
     }
 
 
-    //pointer auf Shared MemoryÜ
-    const int N = osmp_shared->process_count;
-    mailboxes =
-            (MailboxTypeManagement *) (osmp_shared->pid_map + N);
-    fsq =
-            (FreeSlotQueue *) (mailboxes + N);
-    slots =
-            (MessageType *) (fsq + 1);
-
     OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_Init() called");
     return OSMP_SUCCESS;
 }
 
+/**
+ * Hinterlegt den Zeiger auf den bereits angelegten Shared-Memory-Bereich. Diese
+ * Funktion wird nur vom Runner verwendet, bevor die Prozesse gestartet werden.
+ */
 int OSMP_SetSharedMemory(void *ptr) {
     if (ptr == NULL) return OSMP_FAILURE;
     osmp_shared = (osmp_shared_info_t *) ptr;
@@ -114,6 +138,9 @@ int OSMP_SetSharedMemory(void *ptr) {
 }
 
 
+/**
+ * Ermittelt die Größe des übergebenen Datentyps in Byte.
+ */
 int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
     switch (datatype) {
         case OSMP_SHORT:
@@ -152,6 +179,9 @@ int OSMP_SizeOf(OSMP_Datatype datatype, unsigned int *size) {
     return OSMP_SUCCESS;
 }
 
+/**
+ * Liefert in *size* die Anzahl aller gestarteten Prozesse.
+ */
 int OSMP_Size(int *size) {
     // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
     if (!osmp_shared || !size) {
@@ -165,6 +195,9 @@ int OSMP_Size(int *size) {
 }
 
 
+/**
+ * Schreibt den eigenen Rang in *rank*.
+ */
 int OSMP_Rank(int *rank) {
     // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
     if (!osmp_shared || !rank) {
@@ -184,6 +217,11 @@ int OSMP_Rank(int *rank) {
 }
 
 
+/**
+ * Sendet eine Nachricht an den Prozess mit der Nummer dest.
+ * Die Funktion blockiert solange, bis der Nachrichtenpuffer einen freien Slot
+ * besitzt und die Daten kopiert wurden.
+ */
 int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     const int N = osmp_shared->process_count;
     if (dest < 0 || dest >= N || count < 0)
@@ -200,21 +238,21 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
 
 
     //Race Condition vermeiden
-    MailboxTypeManagement *mb = &mailboxes[dest];
+    MailboxTypeManagement *mb = &dynamic_areas.mailboxes[dest];
     sem_wait(&mb->sem_free_mailbox_slots); // blockiert, wenn voll
 
-    sem_wait(&fsq->sem_slots);
-    pthread_mutex_lock(&fsq->free_slots_mutex);
-    const int idx = fsq->free_slots[fsq->in_fsq];
-    fsq->in_fsq = (uint16_t) (((int) fsq->in_fsq + 1) % OSMP_MAX_SLOTS);
-    pthread_mutex_unlock(&fsq->free_slots_mutex);
+    sem_wait(&dynamic_areas.fsq->sem_slots);
+    pthread_mutex_lock(&dynamic_areas.fsq->free_slots_mutex);
+    const int idx = dynamic_areas.fsq->free_slots[dynamic_areas.fsq->in_fsq];
+    dynamic_areas.fsq->in_fsq = (uint16_t) (((int) dynamic_areas.fsq->in_fsq + 1) % OSMP_MAX_SLOTS);
+    pthread_mutex_unlock(&dynamic_areas.fsq->free_slots_mutex);
 
     //Message Slot belegen
-    slots[idx].datatype = datatype;
-    slots[idx].count = count;
-    slots[idx].source = osmp_rank;
-    slots[idx].payload_length = payload_bytes;
-    memcpy(slots[idx].payload, buf, payload_bytes);
+    dynamic_areas.slots[idx].datatype = datatype;
+    dynamic_areas.slots[idx].count = count;
+    dynamic_areas.slots[idx].source = osmp_rank;
+    dynamic_areas.slots[idx].payload_length = payload_bytes;
+    memcpy(dynamic_areas.slots[idx].payload, buf, payload_bytes);
 
 
     //In Ziel-MailboxTypeManagement einhängen
@@ -237,6 +275,10 @@ int OSMP_Send(const void *buf, int count, OSMP_Datatype datatype, int dest) {
     return OSMP_SUCCESS;
 }
 
+/**
+ * Wartet auf eine eingehende Nachricht und kopiert sie in den übergebenen
+ * Puffer. Die Funktion blockiert, bis eine Nachricht vorliegt.
+ */
 int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
               int *len) {
     if (!buf || !source || !len || count < 0)
@@ -254,7 +296,7 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
 
     //Maximale Kopier-Bytezahl prüfen (Overflow / Puffer überschreiben)
     size_t max_bytes = (size_t) count * elem_size;
-    MailboxTypeManagement *mb = &mailboxes[osmp_rank];
+    MailboxTypeManagement *mb = &dynamic_areas.mailboxes[osmp_rank];
 
     sem_wait(&mb->sem_msg_available);
     pthread_mutex_lock(&mb->mailbox_mutex);
@@ -266,19 +308,19 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
     sem_post(&mb->sem_free_mailbox_slots);
 
 
-    const size_t payload_len = slots[idx].payload_length;
+    const size_t payload_len = dynamic_areas.slots[idx].payload_length;
     const size_t nbytes = payload_len < max_bytes ? payload_len : max_bytes;
-    memcpy(buf, slots[idx].payload, nbytes);
+    memcpy(buf, dynamic_areas.slots[idx].payload, nbytes);
 
-    *source = slots[idx].source;
+    *source = dynamic_areas.slots[idx].source;
     *len = (int) nbytes;
 
     //Slot-Index zurück in die FreeSlotQueue
-    pthread_mutex_lock(&fsq->free_slots_mutex);
-    fsq->free_slots[fsq->out_fsq] = idx;
-    fsq->out_fsq = (uint16_t) (((int) fsq->out_fsq + 1) % OSMP_MAX_SLOTS);
-    pthread_mutex_unlock(&fsq->free_slots_mutex);
-    sem_post(&fsq->sem_slots);
+    pthread_mutex_lock(&dynamic_areas.fsq->free_slots_mutex);
+    dynamic_areas.fsq->free_slots[dynamic_areas.fsq->out_fsq] = idx;
+    dynamic_areas.fsq->out_fsq = (uint16_t) (((int) dynamic_areas.fsq->out_fsq + 1) % OSMP_MAX_SLOTS);
+    pthread_mutex_unlock(&dynamic_areas.fsq->free_slots_mutex);
+    sem_post(&dynamic_areas.fsq->sem_slots);
 
     char msg[128];
     snprintf(msg, sizeof(msg), "OSMP_Recv: Process %d received %lu bytes from process %d",
@@ -288,13 +330,16 @@ int OSMP_Recv(void *buf, int count, OSMP_Datatype datatype, int *source,
     return OSMP_SUCCESS;
 }
 
+/**
+ * Gibt alle Ressourcen frei und beendet die Nutzung des Shared Memory.
+ */
 int OSMP_Finalize(void) {
     if (osmp_shared == NULL || osmp_rank == -1) {
         fprintf(stderr, "OSMP_Finalize: Shared memory not initialized\n");
         return OSMP_FAILURE;
     }
 
-    osmp_shared->pid_map[osmp_rank] = -1; // Setze den eigenen PID-Eintrag auf -1
+    dynamic_areas.pid_map[osmp_rank] = -1; // Setze den eigenen PID-Eintrag auf -1
 
     char msg[128];
     snprintf(msg, sizeof(msg), "OSMP_Finalize: Process %d finalized and released", osmp_rank);
@@ -303,14 +348,14 @@ int OSMP_Finalize(void) {
     // Nur der Rank 0 zerstört die Synchronisationsobjekte
     if (osmp_rank == 0) {
         // FreeSlotQueue
-        pthread_mutex_destroy(&fsq->free_slots_mutex);
-        sem_destroy(&fsq->sem_slots);
+        pthread_mutex_destroy(&dynamic_areas.fsq->free_slots_mutex);
+        sem_destroy(&dynamic_areas.fsq->sem_slots);
 
         // Mailboxes
         for (int i = 0; i < osmp_shared->process_count; ++i) {
-            sem_destroy(&mailboxes[i].sem_free_mailbox_slots);
-            sem_destroy(&mailboxes[i].sem_msg_available);
-            pthread_mutex_destroy(&mailboxes[i].mailbox_mutex);
+            sem_destroy(&dynamic_areas.mailboxes[i].sem_free_mailbox_slots);
+            sem_destroy(&dynamic_areas.mailboxes[i].sem_msg_available);
+            pthread_mutex_destroy(&dynamic_areas.mailboxes[i].mailbox_mutex);
         }
 
         // Log-Mutex
@@ -318,7 +363,7 @@ int OSMP_Finalize(void) {
     }
 
     // Shared Memory unmap
-    if (munmap(osmp_shared, SHM_SIZE) == -1) {
+    if (munmap(osmp_shared, shm_total_size) == -1) {
         perror("munmap failed");
         return OSMP_FAILURE;
     }
@@ -326,6 +371,10 @@ int OSMP_Finalize(void) {
     return OSMP_GetSucess();
 }
 
+/**
+ * Synchronisationspunkt für alle Prozesse. Erst wenn alle Prozesse diese
+ * Funktion erreicht haben, geht es für alle weiter.
+ */
 int OSMP_Barrier(void) {
     if (!osmp_shared ||
         osmp_shared->barrier.valid != BARRIER_VALID)
@@ -345,6 +394,11 @@ int OSMP_Barrier(void) {
     return OSMP_FAILURE;
 }
 
+/**
+ * Sammelt Daten aller Prozesse beim Root-Prozess.
+ * Jeder Nicht-Root sendet seine Daten, der Root empfängt anschließend alle
+ * Nachrichten und legt sie in recvbuf ab.
+ */
 int OSMP_Gather(void *sendbuf, int sendcount, OSMP_Datatype sendtype,
                 void *recvbuf, int recvcount, OSMP_Datatype recvtype,
                 int root) {
@@ -518,6 +572,10 @@ int initialize_thread(osmp_request *request, void *(*function)(void *)) {
 }
 
 
+/**
+ * Nicht blockierendes Senden einer Nachricht. Die eigentliche Sendearbeit wird
+ * in einem separaten Thread erledigt.
+ */
 int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSMP_Request request) {
     iSend_args *arguments = calloc(1, sizeof(iSend_args));
     arguments->buffer = buf;
@@ -547,6 +605,10 @@ int OSMP_ISend(const void *buf, int count, OSMP_Datatype datatype, int dest, OSM
     return OSMP_SUCCESS;
 }
 
+/**
+ * Nicht blockierendes Empfangen. Das eigentliche Warten erfolgt in einem
+ * Hilfsthread, sodass der Aufrufer sofort weiterarbeiten kann.
+ */
 int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source,
                int *len, OSMP_Request request) {
     iRecv_args *arguments = calloc(1, sizeof(iRecv_args));
@@ -577,6 +639,9 @@ int OSMP_IRecv(void *buf, int count, OSMP_Datatype datatype, int *source,
     return OSMP_SUCCESS;
 }
 
+/**
+ * Prüft nicht blockierend, ob die angegebene Request bereits abgeschlossen ist.
+ */
 int OSMP_Test(OSMP_Request request, int *flag) {
     osmp_request *req = (osmp_request *) request;
     semwait(&req->status_semaphore);
@@ -591,6 +656,10 @@ int OSMP_Test(OSMP_Request request, int *flag) {
     return OSMP_SUCCESS;
 }
 
+/**
+ * Blockiert, bis die nicht blockierende Operation in *request* abgeschlossen
+ * ist.
+ */
 int OSMP_Wait(OSMP_Request request) {
     osmp_request *proper_request = (osmp_request *) request;
 
@@ -609,6 +678,10 @@ int OSMP_Wait(OSMP_Request request) {
     return OSMP_SUCCESS;
 }
 
+/**
+ * Legt eine neue OSMP_Request an, die für nicht blockierende Operationen
+ * verwendet werden kann.
+ */
 int OSMP_CreateRequest(OSMP_Request *request) {
     OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_CreateRequest() called");
     osmp_request *req = calloc(1, sizeof(osmp_request));
@@ -618,6 +691,9 @@ int OSMP_CreateRequest(OSMP_Request *request) {
     return OSMP_SUCCESS;
 }
 
+/**
+ * Gibt die Ressourcen einer zuvor angelegten Request wieder frei.
+ */
 int OSMP_RemoveRequest(OSMP_Request *request) {
     OSMP_Log(OSMP_LOG_BIB_CALL, "OSMP_RemoveRequest() called");
     osmp_request *req = (osmp_request *) *request;
@@ -627,6 +703,10 @@ int OSMP_RemoveRequest(OSMP_Request *request) {
     return OSMP_SUCCESS;
 }
 
+/**
+ * Schreibt eine Lognachricht in die von osmprun angegebene Datei, sofern das
+ * aktuelle Verbositätslevel dies zulässt.
+ */
 int OSMP_Log(OSMP_Verbosity verbosity, char *message) {
     // Überprüfen Sie, ob die Shared Memory-Struktur initialisiert ist
     if (!osmp_shared || !message) {

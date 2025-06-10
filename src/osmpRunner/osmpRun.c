@@ -27,6 +27,10 @@ char buffer[256]; // Puffer für Log-Meldungen
 
 osmp_shared_info_t *osmp_shared = NULL; // globaler Zeiger
 
+/**
+ * Legt den Shared Memory entsprechend der Prozessanzahl an und initialisiert
+ * alle Synchronisationsobjekte.
+ */
 int setup_shared_memory(int process_count) {
     size_t sz_hdr = sizeof(osmp_shared_info_t);
     size_t sz_pidmap = (size_t) process_count * sizeof(pid_t);
@@ -76,17 +80,23 @@ int setup_shared_memory(int process_count) {
         osmp_shared->logfile_path[0] = '\0';
     }
 
-    pid_t *pid_map = osmp_shared->pid_map;
+    // Adressen der dynamischen Bereiche berechnen und zentral speichern
+    char *base = (char *)osmp_shared + SHM_HDR_SIZE;
+    dynamic_areas.pid_map = (pid_t *) base;
+    dynamic_areas.mailboxes = (MailboxTypeManagement *) (dynamic_areas.pid_map + process_count);
+    dynamic_areas.fsq = (FreeSlotQueue *) (dynamic_areas.mailboxes + process_count);
+    dynamic_areas.slots = (MessageType *) (dynamic_areas.fsq + 1);
+    dynamic_areas.gather_area = (char *) (dynamic_areas.slots + OSMP_MAX_SLOTS);
+
     for (int i = 0; i < process_count; i++)
-        pid_map[i] = -1;
+        dynamic_areas.pid_map[i] = -1;
 
     // Initialisierung
     sem_init(&osmp_shared->log_mutex, 1, 1); // 1 = für Shared Memory
 
 
     // Mailboxes anschließen
-    MailboxTypeManagement *mailboxes =
-            (MailboxTypeManagement *) (pid_map + process_count);
+    MailboxTypeManagement *mailboxes = dynamic_areas.mailboxes;
 
     for (int i = 0; i < process_count; i++) {
         sem_init(&mailboxes[i].sem_free_mailbox_slots, 1, OSMP_MAX_MESSAGES_PROC); // freie Plätze
@@ -112,8 +122,7 @@ int setup_shared_memory(int process_count) {
     }
 
     // FreeSlotQueue anschließen
-    FreeSlotQueue *fsq =
-            (FreeSlotQueue *) (mailboxes + process_count);
+    FreeSlotQueue *fsq = dynamic_areas.fsq;
     fsq->in_fsq = fsq->out_fsq = 0;
     sem_init(&fsq->sem_slots, 1, OSMP_MAX_SLOTS);
     pthread_mutexattr_t attr;
@@ -141,6 +150,9 @@ int setup_shared_memory(int process_count) {
 }
 
 
+/**
+ * Startet die gewünschte Anzahl an OSMP-Prozessen und wartet auf deren Ende.
+ */
 int main(int argc, char *argv[]) {
     int opt; // Variable für Befehlszeilenoptionen
     int process_count = -1; // Anzahl der zu startenden Prozesse
@@ -247,7 +259,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         } else {
             // Nur hier im Elternprozess die pid_map schreiben
-            osmp_shared->pid_map[i] = pid;
+            dynamic_areas.pid_map[i] = pid;
 
             close(start_pipe[0]); // Lese-Ende schließen
             write(start_pipe[1], "x", 1); // Startsignal senden

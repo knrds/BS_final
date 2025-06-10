@@ -16,7 +16,8 @@
 #include "barrier.h"
 
 #define SHM_NAME "/osmp_shm"
-#define SHM_SIZE sizeof(osmp_shared_info_t) // Größe des Shared Memory
+// Größe des statischen Headers (ohne die dynamischen Bereiche)
+#define SHM_HDR_SIZE sizeof(osmp_shared_info_t)
 
 /**
  * enum für die verschiedenen Statuscodes einer OSMP-Anfrage
@@ -91,10 +92,22 @@ typedef struct {
     sem_t log_mutex;
     barrier_t barrier;
     barrier_t barrier_gather;
-    pid_t pid_map[];
 } osmp_shared_info_t;
 
-//TODO: Umstrukturierung der Shared Memory Bereiche
+// Struktur, die die Adressen aller dynamischen Speicherbereiche zusammenfasst.
+// Die Felder zeigen auf Abschnitte im Shared Memory, die direkt hinter dem
+// statischen Header liegen. Nach der Initialisierung kann über diese Zeiger
+// ohne weitere Adressberechnungen auf die Bereiche zugegriffen werden.
+typedef struct {
+    pid_t *pid_map;                     // Zuordnung Rang -> PID
+    MailboxTypeManagement *mailboxes;   // Verwaltungsstrukturen der Mailboxen
+    FreeSlotQueue *fsq;                 // Queue für freie Nachrichtenslots
+    MessageType *slots;                 // Array aller Nachrichtenslots
+    char *gather_area;                  // Bereich für Gather-Operationen
+} dynamic_values;
+
+// Globale Instanz der dynamischen Bereichsadressen
+extern dynamic_values dynamic_areas;
 
 #include "OSMP.h"
 
